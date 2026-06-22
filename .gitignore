@@ -1,0 +1,15 @@
+# Virtual environment
+.venv/
+
+# Python cache
+__pycache__/
+*.pyc
+
+# Claude config
+.claude/
+
+# Models (likely large files)
+models/
+
+# Environment variables
+.env
