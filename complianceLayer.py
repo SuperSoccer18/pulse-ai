@@ -46,7 +46,7 @@ log = logging.getLogger(__name__)
 
 # CORTEX_BASE_URL is the root URL for Lilly's Cortex platform
 # All agent endpoints are appended to this base
-CORTEX_BASE_URL = "https://cortex.lilly.com"
+CORTEX_BASE_URL = "https://gateway-intranet.apim-dev.lilly.com"
 
 # COMPLIANCE_GOBLIN_ENDPOINT is the path for the Compliance Goblin V3 agent
 # POST requests here ask the agent to analyze a transcript for PI and AECP

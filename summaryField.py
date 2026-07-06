@@ -43,7 +43,7 @@ log = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 # CORTEX_BASE_URL is the root URL for Lilly's Cortex platform
-CORTEX_BASE_URL = "https://cortex.lilly.com"
+CORTEX_BASE_URL = "https://gateway.apim-dev.lilly.com"
 
 # SUMMARY_FAIRY_ENDPOINT is the path for the Summary Fairy agent
 # POST requests here ask the agent to summarize a cleaned transcript

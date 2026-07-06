@@ -45,7 +45,7 @@ log = logging.getLogger(__name__)
 # ─────────────────────────────────────────────────────────────────────────────
 
 # CORTEX_BASE_URL is the root URL for Lilly's Cortex platform
-CORTEX_BASE_URL = "https://cortex.lilly.com"
+CORTEX_BASE_URL = "https://gateway.apim-dev.lilly.com"
 
 # FIELD_EXTRACTION_ENDPOINT is the path for the Field Extraction Gnome agent
 # POST requests here ask the agent to extract Veeva CRM fields from a transcript
