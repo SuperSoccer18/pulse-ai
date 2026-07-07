@@ -19,6 +19,15 @@ import math
 import subprocess
 from pathlib import Path
 
+# TEMPORARY — swap back once whitelisted
+from mock_cortex import MockComplianceLayer  as ComplianceLayer
+from mock_cortex import MockFieldExtraction  as FieldExtraction
+from mock_cortex import MockSummaryField     as SummaryField
+
+#from complianceLayer import ComplianceLayer
+#from fieldExtraction  import FieldExtraction
+#from summaryField     import SummaryField
+
 import numpy as np
 import soundfile as sf
 import streamlit as st
@@ -210,6 +219,74 @@ def handle_audio(audio_bytes: bytes, processor, model) -> None:
             audio, processor, model, progress_bar, status_text
         )
 
+        # ── Compliance pipeline ───────────────────────────────────────
+        status_text.caption("Running compliance analysis...")
+        compliance  = ComplianceLayer()
+        comp_result = compliance.analyze(result)
+
+        if comp_result["recommended_action"] != "HALT":
+            cleaned    = comp_result["cleaned_transcript"]
+            extractor  = FieldExtraction()
+            summarizer = SummaryField()
+            fields     = extractor.extract(cleaned)
+            summary    = summarizer.summarize(cleaned)
+
+            # ── Human review UI ──────────────────────────────────────
+            st.subheader("🛡️ Compliance Result")
+            status_color = {
+                "CLEAN":    "✅ CLEAN",
+                "ADVISORY": "⚠️ ADVISORY",
+                "WARNING":  "⚠️ WARNING",
+                "CRITICAL": "🚨 CRITICAL",
+            }
+            st.success(status_color.get(comp_result["compliance_status"], "UNKNOWN"))
+
+            if comp_result["violations"]:
+                st.warning("Violations detected:")
+                for v in comp_result["violations"]:
+                    st.write(f"  - {v}")
+
+            st.subheader("📋 Veeva CRM Fields — Review Before Submitting")
+            col1, col2 = st.columns(2)
+            with col1:
+                account  = st.text_input("Account",      value=fields.get("account")  or "")
+                location = st.text_input("Location",     value=fields.get("location") or "")
+                address  = st.text_input("Address",      value=fields.get("address")  or "")
+            with col2:
+                call_dt    = st.text_input("Call DateTime", value=fields.get("call_datetime") or "")
+                engagement = st.selectbox("Engagement Method",
+                             ["In-office", "Virtual", "P2P", "Exhibit/Congress",
+                              "Non Sales Out of Office"],
+                             index=0)
+
+            notes = st.text_area("Interaction Notes (max 255 chars)",
+                                  value=fields.get("interaction_notes") or "",
+                                  max_chars=255)
+
+            if fields.get("products_discussed"):
+                st.subheader("💊 Products Discussed")
+                for p in fields["products_discussed"]:
+                    st.write(f"  - **{p['product']}** — {p['indication']}")
+
+            st.subheader("📝 Call Summary")
+            st.write(f"**Overview:** {summary.get('call_overview', 'N/A')}")
+            st.write(f"**Key Topics:** {summary.get('key_topics', 'N/A')}")
+            st.write(f"**HCP Response:** {summary.get('hcp_response', 'N/A')}")
+            st.write(f"**Objections:** {summary.get('objections_raised', 'N/A')}")
+            st.write(f"**Next Steps:** {summary.get('next_steps', 'N/A')}")
+            st.write(f"**Rep Recommendations:** {summary.get('rep_recommendations', 'N/A')}")
+
+            if st.button("✅ Approve and Submit to Veeva CRM"):
+                st.success("Submitted to Veeva CRM successfully!")
+                st.balloons()
+
+        else:
+            st.error(
+                "🚨 Compliance HALT — transcript contains critical violations. "
+                "DLO escalation required before CRM submission."
+            )
+
+
         status_text.empty()
         progress_bar.progress(1.0)
 
@@ -286,3 +363,5 @@ with tab_file:
     )
     if uploaded is not None:
         handle_audio(uploaded.read(), processor, model)
+
+

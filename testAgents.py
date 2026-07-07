@@ -15,6 +15,8 @@ CORTEX_BASE = os.getenv("CORTEX_BASE_URL", "https://api.dev.cortex.lilly.com")
 # Light Client handles Lilly authentication automatically
 client = LIGHTClient()
 
+YOUR_EMAIL = os.environ["EMAIL"]
+
 # ── Clean test transcript ─────────────────────────────────────────────────
 CLEAN_TRANSCRIPT = (
     "Visited the office today and discussed VERZENIO for HR+/HER2- mBC "
