@@ -37,7 +37,7 @@ load_dotenv()
 client = LIGHTClient()
 
 # CORTEX_BASE_URL loaded from .env — falls back to dev environment
-CORTEX_BASE_URL = os.getenv("CORTEX_BASE_URL", "https://api.dev.cortex.lilly.com")
+CORTEX_BASE_URL = os.getenv("CORTEX_BASE_URL", "https://gateway-intranet.apim.lilly.com/cortex")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -128,16 +128,25 @@ class FieldExtraction:
     def _call_api(self, cleaned_transcript: str, extraction_id: str) -> str | None:
         """
         POSTs the cleaned transcript to Field Extraction Gnome using
-        Lilly Light Client. Light Client handles all authentication automatically.
+        Lilly Light Client. get_auth_header() provides the personal
+        Lilly token accepted by Cortex.
         """
 
         log.info(f"{extraction_id}: POST {CORTEX_BASE_URL}/model/ask/field-extraction-gnome")
 
         try:
-            # client.post uses Light Client auth — no Bearer token needed
+            # get_auth_header() returns the personal Lilly Bearer token
+            # This is the token method confirmed working with Cortex
             response = client.post(
                 f"{CORTEX_BASE_URL}/model/ask/field-extraction-gnome",
-                data={"q": cleaned_transcript},
+                data={
+                    "q":                cleaned_transcript,
+                    "stream":           "true",
+                    "no_summary":       "false",
+                    "background_job":   "false",
+                    "workflow_timeout": "1",
+                },
+                headers=client.get_auth_header(),
             )
 
             # Raise exception for 4xx/5xx responses
@@ -289,9 +298,9 @@ class FieldExtraction:
     def _error_result(self, extraction_id: str) -> dict:
         """Returned when the Cortex API call fails."""
         result = self._empty_result()
-        result["extraction_id"]     = extraction_id
+        result["extraction_id"]      = extraction_id
         result["recommended_action"] = "REVIEW"
-        result["interaction_notes"] = "Field extraction failed — manual entry required"
+        result["interaction_notes"]  = "Field extraction failed — manual entry required"
         return result
 
 

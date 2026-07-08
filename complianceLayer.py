@@ -37,7 +37,7 @@ load_dotenv()
 client = LIGHTClient()
 
 # CORTEX_BASE_URL loaded from .env — falls back to dev environment
-CORTEX_BASE_URL = os.getenv("CORTEX_BASE_URL", "https://api.dev.cortex.lilly.com")
+CORTEX_BASE_URL = os.getenv("CORTEX_BASE_URL", "https://gateway-intranet.apim.lilly.com/cortex")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -131,16 +131,24 @@ class ComplianceLayer:
     def _call_api(self, transcript: str, chunk_id: str) -> str | None:
         """
         POSTs transcript to Compliance Goblin V3 using Lilly Light Client.
-        Light Client handles all Lilly authentication automatically.
+        get_auth_header() provides the personal Lilly token accepted by Cortex.
         """
 
-        log.info(f"{chunk_id}: POST {CORTEX_BASE_URL}/model/ask/compliance-goblin-v3")
+        log.info(f"{chunk_id}: POST {CORTEX_BASE_URL}/model/ask/compliance-goblin-v2")
 
         try:
-            # client.post uses Light Client auth — no Bearer token needed
+            # get_auth_header() returns the personal Lilly Bearer token
+            # This is the token method confirmed working with Cortex
             response = client.post(
-                f"{CORTEX_BASE_URL}/model/ask/compliance-goblin-v3",
-                data={"q": transcript},
+                f"{CORTEX_BASE_URL}/model/ask/compliance-goblin-v2",
+                data={
+                    "q":                transcript,
+                    "stream":           "true",
+                    "no_summary":       "false",
+                    "background_job":   "false",
+                    "workflow_timeout": "1",
+                },
+                headers=client.get_auth_header(),
             )
 
             # Raise exception for 4xx/5xx responses
@@ -304,7 +312,6 @@ if __name__ == "__main__":
 
     print("\n=== Pulse.AI — Compliance Layer Standalone Test ===\n")
 
-    # Load transcript from file argument or use built-in PI-Red test
     if len(sys.argv) > 1:
         transcript_text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
         log.info(f"Loaded: {sys.argv[1]}")

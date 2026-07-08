@@ -38,7 +38,7 @@ load_dotenv()
 client = LIGHTClient()
 
 # CORTEX_BASE_URL loaded from .env — falls back to dev environment
-CORTEX_BASE_URL = os.getenv("CORTEX_BASE_URL", "https://api.dev.cortex.lilly.com")
+CORTEX_BASE_URL = os.getenv("CORTEX_BASE_URL", "https://gateway-intranet.apim.lilly.com/cortex")
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -125,16 +125,24 @@ class SummaryField:
     def _call_api(self, cleaned_transcript: str, summary_id: str) -> str | None:
         """
         POSTs the cleaned transcript to Summary Fairy using Lilly Light Client.
-        Light Client handles all authentication automatically.
+        get_auth_header() provides the personal Lilly token accepted by Cortex.
         """
 
         log.info(f"{summary_id}: POST {CORTEX_BASE_URL}/model/ask/summary-fairy")
 
         try:
-            # client.post uses Light Client auth — no Bearer token needed
+            # get_auth_header() returns the personal Lilly Bearer token
+            # This is the token method confirmed working with Cortex
             response = client.post(
                 f"{CORTEX_BASE_URL}/model/ask/summary-fairy",
-                data={"q": cleaned_transcript},
+                data={
+                    "q":                cleaned_transcript,
+                    "stream":           "true",
+                    "no_summary":       "false",
+                    "background_job":   "false",
+                    "workflow_timeout": "1",
+                },
+                headers=client.get_auth_header(),
             )
 
             # Raise exception for 4xx/5xx responses
