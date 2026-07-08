@@ -38,14 +38,14 @@ from transcribe_streaming_experiment import (
 )
 
 # TEMPORARY — swap back to real imports once Cortex whitelisting is approved
-from mock_cortex import MockComplianceLayer  as ComplianceLayer
-from mock_cortex import MockFieldExtraction  as FieldExtraction
-from mock_cortex import MockSummaryField     as SummaryField
+#from mock_cortex import MockComplianceLayer  as ComplianceLayer
+#from mock_cortex import MockFieldExtraction  as FieldExtraction
+#from mock_cortex import MockSummaryField     as SummaryField
 
 # To use real agents once whitelisted, replace the three lines above with:
-# from complianceLayer import ComplianceLayer
-# from fieldExtraction  import FieldExtraction
-# from summaryField     import SummaryField
+from complianceLayer import ComplianceLayer
+from fieldExtraction  import FieldExtraction 
+from summaryField     import SummaryField
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Constants
@@ -309,7 +309,7 @@ def handle_audio(audio_bytes: bytes, processor, model) -> None:
             "immediately deleted from memory. Only a 0.3s overlap buffer (boundary "
             "context) persists between chunks. No raw audio survives to the decoding "
             "step -- the decoder operates entirely on non-invertible encoder states.",
-            icon="lock",
+            icon="🔒",
         )
 
         st.subheader("Step 1 of 4 -- Transcription")
@@ -358,7 +358,7 @@ def _render_result(result: str, stats: dict) -> None:
 
 st.set_page_config(
     page_title="Pulse.AI",
-    page_icon="lock",
+    page_icon="🔒",
     layout="centered",
 )
 
