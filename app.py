@@ -1,7 +1,7 @@
 """
 app.py  —  Privacy-First Audio Transcription Demo
 ==================================================
-Streamlit frontend for the chunked encoder pipeline.
+Streamlit frontend for the chunked encoder pipeline [DEPRECATED - use server.py]
 
 Audio is collected via browser mic or file upload, converted to 16 kHz mono
 WAV via ffmpeg, and processed through the same chunked pipeline used in
