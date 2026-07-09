@@ -23,6 +23,8 @@ import logging
 # datetime records when compliance events happen during the session
 from datetime import datetime
 
+import json
+
 # LIGHTClient handles Lilly authentication automatically
 from light_client import LIGHTClient
 
@@ -170,8 +172,25 @@ class ComplianceLayer:
             log.error(f"{chunk_id}: API call failed — {e}")
             return None
 
+    def _extract_model_text(self, raw: str) -> str:
+        """Parses the Cortex JSON envelope and returns the actual model output text."""
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            # Not JSON — must already be plain text, use as-is
+            return raw
+
+        model_text = data.get("message")
+
+        if not model_text:
+            model_text = raw  # fallback, will likely fail parsing but won't crash
+
+        # Un-escape literal \n so downstream extract_field() newline search works
+        return model_text.replace("\\n", "\n")
 
     def _parse(self, raw: str, chunk_id: str) -> dict:
+        raw = self._extract_model_text(raw)
+
         """
         Parses raw Compliance Goblin V3 response text into structured fields.
         Extracts compliance_status, dlo_escalation, cleaned_transcript,

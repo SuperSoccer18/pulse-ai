@@ -1,0 +1,997 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pulse AI | Lilly</title>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
+<style>
+/* ── LILLY DESIGN TOKENS ── */
+:root {
+  --red:      #D31710;
+  --brown:    #501009;
+  --rose:     #F9EEED;
+  --coral:    #FD9485;
+  --gold:     #F4C003;
+  --cream:    #F9F0E0;
+  --green:    #00422C;
+  --sage:     #BEEBE6;
+  --sage-t:   #F0F8F6;
+  --blue:     #003A6C;
+  --azure:    #86B3F2;
+  --gray:     #818C94;
+  --stone:    #D8E4EC;
+  --stone-t:  #F3F7FA;
+  --black:    #191919;
+  --white:    #FFFFFF;
+  --font:     'IBM Plex Sans', Arial, sans-serif;
+}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
+body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:28px 16px 40px}
+
+/* ── PHONE SHELL ── */
+.phone{width:393px;height:852px;background:var(--white);border-radius:54px;box-shadow:0 0 0 11px #1C1C1E,0 0 0 13px #3a3a3a,0 48px 96px rgba(0,0,0,0.5);overflow:hidden;display:flex;flex-direction:column;position:relative;flex-shrink:0}
+.island{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:126px;height:37px;background:#000;border-radius:20px;z-index:200}
+.hindicator{height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--white)}
+.hbar{width:134px;height:5px;background:rgba(0,0,0,0.16);border-radius:3px}
+.screens{flex:1;position:relative;overflow:hidden}
+.scr{position:absolute;inset:0;display:flex;flex-direction:column;background:var(--stone-t);transition:transform 0.32s cubic-bezier(0.4,0,0.2,1)}
+.scr.out-left{transform:translateX(-100%);pointer-events:none}
+.scr.out-right{transform:translateX(100%);pointer-events:none}
+.scr.visible{transform:translateX(0)}
+.scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
+.scroll::-webkit-scrollbar{display:none}
+
+/* ── STATUS BAR ── */
+.sbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 8px;flex-shrink:0;position:relative;z-index:5}
+.sbar-time{font-size:15px;font-weight:600;letter-spacing:-0.3px}
+.sbar-icons{display:flex;align-items:center;gap:6px}
+.sig{display:flex;align-items:flex-end;gap:1.5px;height:12px}
+.sig span{width:3px;border-radius:1px}
+.bat{width:23px;height:11px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;position:relative}
+.bat::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:2px;height:6px;background:currentColor;border-radius:0 2px 2px 0}
+.bat-fill{width:72%;height:100%;background:currentColor;border-radius:1px}
+
+/* ── HOME SCREEN ── */
+.home-head{background:var(--red);padding:0 20px 18px;flex-shrink:0}
+.home-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
+.home-brand{display:flex;align-items:center;gap:10px}
+.app-divider{width:1px;height:18px;background:rgba(255,255,255,0.4)}
+.app-name{font-size:16px;font-weight:700;color:var(--white);letter-spacing:-0.2px}
+.avatar{width:38px;height:38px;border-radius:19px;background:var(--brown);display:flex;align-items:center;justify-content:center;font-size:15px;font-weight:700;color:var(--white)}
+.home-greeting{font-size:13px;color:rgba(255,255,255,0.8);margin-bottom:3px}
+.home-name{font-size:20px;font-weight:700;color:var(--white);letter-spacing:-0.4px;margin-bottom:14px}
+.stats{display:flex;gap:8px}
+.stat{flex:1;background:var(--brown);border-radius:10px;padding:9px 12px}
+.stat-n{font-size:22px;font-weight:700;color:var(--white);line-height:1}
+.stat-l{font-size:10px;color:rgba(255,255,255,0.75);margin-top:2px;font-weight:400}
+
+.home-body{flex:1;padding:16px 16px 16px;background:var(--stone-t);position:relative}
+.sec-label{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:12px}
+.card{background:var(--white);border-radius:12px;padding:14px 14px 14px 18px;margin-bottom:10px;border:1px solid var(--stone);border-left:4px solid var(--red);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s}
+.card:active{transform:scale(0.985);box-shadow:0 1px 4px rgba(0,0,0,0.08)}
+.card.done{border-left-color:var(--stone);opacity:0.65;cursor:default}
+.card-name{font-size:14px;font-weight:600;color:var(--black);margin-bottom:3px;display:flex;align-items:center;gap:7px}
+.card-spec{font-size:12px;color:var(--gray);font-weight:400}
+.card-loc{font-size:11px;color:var(--gray);margin-top:2px;font-weight:400}
+.card-right{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex-shrink:0}
+.tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600}
+.tag-red{background:var(--rose);color:var(--red)}
+.tag-green{background:var(--sage-t);color:var(--green);border:1px solid var(--sage)}
+.btn-primary{background:var(--red);color:var(--white);border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.1s}
+.btn-primary:active{opacity:0.82}
+.fab{position:absolute;bottom:20px;right:18px;background:var(--red);color:var(--white);border:none;border-radius:28px;padding:13px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(211,23,16,0.42);display:flex;align-items:center;gap:8px;font-family:var(--font)}
+.fab:active{opacity:0.85;transform:scale(0.97)}
+
+/* ── RECORDING SCREEN ── */
+.top-bar{background:var(--white);padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--stone);flex-shrink:0}
+.back{background:none;border:none;cursor:pointer;color:var(--red);font-size:28px;line-height:1;padding:0 2px;font-family:var(--font)}
+.back:active{opacity:0.6}
+.top-bar-title{font-size:14px;font-weight:600;color:var(--black)}
+.top-bar-sub{font-size:11px;color:var(--gray);margin-top:1px;font-weight:400}
+.hcp-pill{margin:16px 16px 0;background:var(--rose);border-radius:10px;padding:11px 15px;border:1px solid rgba(211,23,16,0.2);flex-shrink:0}
+.hcp-pill-name{font-size:14px;font-weight:700;color:var(--brown)}
+.hcp-pill-sub{font-size:12px;color:var(--red);margin-top:2px;font-weight:400}
+.rec-main{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:24px}
+.pulse-wrap{position:relative;width:172px;height:172px;display:flex;align-items:center;justify-content:center}
+.ring{position:absolute;border-radius:50%}
+.ring1{width:172px;height:172px;background:rgba(211,23,16,0.07)}
+.ring2{width:138px;height:138px;background:rgba(211,23,16,0.13)}
+.ring1.pulsing,.ring2.pulsing{animation:pulse 1.6s ease-in-out infinite}
+.ring2.pulsing{animation-delay:0.18s}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.07)}}
+.rec-btn{width:92px;height:92px;border-radius:50%;background:var(--red);border:none;cursor:pointer;display:flex;align-items:center;justify-content:center;box-shadow:0 6px 24px rgba(211,23,16,0.45);z-index:1;transition:transform 0.1s;font-family:var(--font)}
+.rec-btn:active{transform:scale(0.92)}
+.rec-btn .icon-mic{display:block}.rec-btn .icon-stop{display:none}
+.rec-btn.recording .icon-mic{display:none}.rec-btn.recording .icon-stop{display:block}
+.rec-sq{width:28px;height:28px;border-radius:6px;background:var(--white)}
+.rec-timer{font-size:40px;font-weight:300;color:var(--black);margin-top:20px;font-variant-numeric:tabular-nums;letter-spacing:0.04em}
+.rec-hint{font-size:13px;color:var(--gray);margin-top:5px;font-weight:400}
+.priv-badge{margin-top:26px;background:var(--stone-t);border-radius:10px;padding:11px 18px;border:1px solid var(--stone);text-align:center;max-width:280px}
+.priv-badge h4{font-size:11px;color:var(--blue);font-weight:600}
+.priv-badge p{font-size:10px;color:var(--blue);opacity:0.75;margin-top:2px;font-weight:400}
+.tip-box{margin:0 16px 16px;background:var(--stone-t);border-radius:10px;padding:11px 15px;border:1px solid var(--stone);flex-shrink:0}
+.tip-box h4{font-size:11px;color:var(--black);font-weight:600;margin-bottom:4px}
+.tip-box p{font-size:11px;color:var(--gray);line-height:1.5;font-weight:400}
+
+/* ── PROCESSING SCREEN ── */
+.proc-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;background:var(--stone-t)}
+.p-logo{width:76px;height:76px;border-radius:16px;background:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 8px 32px rgba(211,23,16,0.35)}
+.p-title{font-size:19px;font-weight:700;color:var(--black);margin-bottom:5px;letter-spacing:-0.3px}
+.p-sub{font-size:13px;color:var(--gray);margin-bottom:38px;font-weight:400}
+.p-steps{width:100%;max-width:290px}
+.step{display:flex;align-items:center;gap:13px;margin-bottom:14px;transition:opacity 0.4s ease}
+.step.dim{opacity:0.22}
+.step-circle{width:22px;height:22px;border-radius:50%;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:background 0.3s}
+.step-circle.idle{background:var(--stone)}
+.step-circle.active{background:var(--red)}
+.step-circle.done{background:var(--green)}
+.step-dot{width:8px;height:8px;border-radius:50%;background:var(--white)}
+.step-check{font-size:11px;color:var(--white);font-weight:700}
+.step-text{font-size:13px;color:var(--black);transition:color 0.3s;font-weight:400}
+.step-text.dim-t{color:var(--gray)}
+.step-text.done-t{color:var(--green);font-weight:600}
+
+/* ── REVIEW SCREEN ── */
+.review-head{background:var(--white);padding:13px 20px;border-bottom:1px solid var(--stone);flex-shrink:0}
+.review-head h3{font-size:14px;font-weight:700;color:var(--black)}
+.review-head p{font-size:11px;color:var(--gray);margin-top:1px;font-weight:400}
+.review-body{flex:1;padding:16px 16px 0;background:var(--stone-t)}
+.ok-banner{background:var(--sage-t);border-radius:10px;padding:11px 15px;display:flex;align-items:center;gap:11px;margin-bottom:16px;border:1px solid var(--sage)}
+.ok-icon{font-size:18px;line-height:1;color:var(--green)}
+.ok-banner h4{font-size:13px;font-weight:600;color:var(--green)}
+.ok-banner p{font-size:11px;color:var(--green);opacity:0.85;margin-top:1px;font-weight:400}
+.f{margin-bottom:12px}
+.lbl{font-size:10px;font-weight:700;color:var(--gray);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px}
+.val{border-radius:8px;padding:9px 13px;font-size:13px;line-height:1.5;font-weight:400}
+.val-rose{background:var(--rose);color:var(--brown)}
+.val-stone{background:var(--stone-t);color:var(--black);border:1px solid var(--stone)}
+.val-cream{background:var(--cream);color:var(--black)}
+.f-row{display:flex;gap:10px}
+.f-row .f{flex:1}
+.stat-mini{flex:1;text-align:center;background:var(--stone-t);border:1px solid var(--stone);border-radius:8px;padding:9px 8px}
+.stat-mini .lbl{margin-bottom:3px}
+.stat-mini .n{font-size:17px;font-weight:700;line-height:1}
+.review-foot{padding:12px 16px;background:var(--white);border-top:1px solid var(--stone);display:flex;gap:10px;flex-shrink:0}
+.btn-outline{flex:1;background:var(--white);color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.1s}
+.btn-outline:active{opacity:0.75}
+.btn-submit{flex:2;background:var(--red);color:var(--white);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:-0.2px;transition:opacity 0.1s}
+.btn-submit:active{opacity:0.82}
+
+/* ── CONFIRMED SCREEN ── */
+.conf-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:var(--stone-t)}
+.tick-ring{width:76px;height:76px;border-radius:50%;background:var(--sage-t);display:flex;align-items:center;justify-content:center;margin-bottom:20px;border:2.5px solid var(--green)}
+.tick-icon{font-size:32px;color:var(--green);line-height:1}
+.conf-title{font-size:22px;font-weight:700;color:var(--black);margin-bottom:6px;letter-spacing:-0.5px}
+.conf-sub{font-size:13px;color:var(--gray);margin-bottom:26px;text-align:center;line-height:1.55;max-width:280px;font-weight:400}
+.sum-card{background:var(--white);border-radius:12px;padding:16px;width:100%;margin-bottom:14px;border:1px solid var(--stone);border-top:4px solid var(--red)}
+.sum-label{font-size:10px;font-weight:700;color:var(--gray);text-transform:uppercase;letter-spacing:0.07em;margin-bottom:12px}
+.sum-row{display:flex;justify-content:space-between;align-items:center;padding:7px 0;border-bottom:1px solid var(--stone)}
+.sum-row:last-child{border-bottom:none}
+.sum-k{font-size:12px;color:var(--gray);font-weight:400}
+.sum-v{font-size:12px;color:var(--black);font-weight:600}
+.saved-box{background:var(--rose);border-radius:12px;padding:14px 18px;width:100%;margin-bottom:24px;text-align:center;border:1px solid rgba(211,23,16,0.15)}
+.saved-box h4{font-size:11px;color:var(--red);font-weight:600}
+.saved-box .big{font-size:32px;font-weight:700;color:var(--red);letter-spacing:-1px;margin-top:4px}
+.saved-box small{font-size:11px;color:var(--red);opacity:0.65;font-weight:400}
+.btn-done{background:var(--red);color:var(--white);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--font);letter-spacing:-0.2px;transition:opacity 0.1s}
+.btn-done:active{opacity:0.82}
+
+/* ── ERROR BANNER ── */
+.err-banner{background:#FFF3F3;border:1px solid var(--coral);border-radius:10px;padding:10px 14px;margin:12px 16px 0;font-size:12px;color:var(--red);line-height:1.5;display:none}
+.err-banner.visible{display:block}
+
+/* ── LILLY SVG WORDMARK (inline, white) ── */
+.lilly-wm{height:20px;width:auto}
+</style>
+</head>
+<body>
+
+<div class="phone">
+  <div class="island"></div>
+  <div class="screens" id="screens">
+
+    <!-- ① HOME -->
+    <div class="scr visible" id="s-home">
+      <div class="home-head">
+        <div class="sbar" style="color:#fff">
+          <span class="sbar-time" style="color:#fff" id="clock-home">9:41</span>
+          <div class="sbar-icons">
+            <div class="sig"><span style="height:4px;background:#fff"></span><span style="height:7px;background:#fff"></span><span style="height:10px;background:#fff"></span><span style="height:12px;background:rgba(255,255,255,0.35)"></span></div>
+            <svg width="15" height="11" viewBox="0 0 15 11" fill="none"><path d="M7.5 2C9.5 2 11.3 2.8 12.6 4.1L13.8 2.9C12.1 1.2 9.9 0.2 7.5 0.2C5.1 0.2 2.9 1.2 1.2 2.9L2.4 4.1C3.7 2.8 5.5 2 7.5 2Z" fill="white"/><path d="M7.5 4.8C8.9 4.8 10.1 5.3 11 6.2L12.2 5C11 3.8 9.3 3 7.5 3C5.7 3 4 3.8 2.8 5L4 6.2C4.9 5.3 6.1 4.8 7.5 4.8Z" fill="white"/><circle cx="7.5" cy="8.8" r="1.7" fill="white"/></svg>
+            <div class="bat" style="border-color:#fff;color:#fff"><div class="bat-fill" style="background:#fff"></div></div>
+          </div>
+        </div>
+        <div class="home-greeting" id="home-date">Thursday, May 1</div>
+        <div class="home-top">
+          <div>
+            <div class="home-name">Good morning, Marcus</div>
+            <div class="stats">
+              <div class="stat"><div class="stat-n" id="stat-total">—</div><div class="stat-l">Calls today</div></div>
+              <div class="stat"><div class="stat-n" id="stat-done">—</div><div class="stat-l">Documented</div></div>
+              <div class="stat"><div class="stat-n" id="stat-pending">—</div><div class="stat-l">Pending</div></div>
+            </div>
+          </div>
+          <div class="avatar">M</div>
+        </div>
+        <div class="home-brand" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.2)">
+          <!-- Lilly wordmark SVG (white) -->
+          <svg class="lilly-wm" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Lilly">
+            <text x="0" y="28" font-family="IBM Plex Sans, Arial, sans-serif" font-weight="700" font-size="32" fill="white">Lilly</text>
+          </svg>
+          <div class="app-divider"></div>
+          <div class="app-name">Pulse AI</div>
+        </div>
+      </div>
+      <div class="home-body scroll" style="flex:1">
+        <div class="sec-label">Today's planned calls</div>
+        <div id="call-list">
+          <!-- populated by fetchCalls() -->
+          <div style="text-align:center;padding:32px;color:var(--gray);font-size:13px">Loading calls…</div>
+        </div>
+        <div style="height:80px"></div>
+        <button class="fab">
+          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><line x1="6.5" y1="1" x2="6.5" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="6.5" x2="12" y2="6.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
+          New call
+        </button>
+      </div>
+    </div>
+
+    <!-- ② RECORDING -->
+    <div class="scr out-right" id="s-recording" style="background:var(--white)">
+      <div class="sbar" style="color:var(--black);background:var(--white)">
+        <span class="sbar-time" style="color:var(--black)" id="clock-rec">9:41</span>
+        <div class="sbar-icons" style="color:var(--black)">
+          <div class="sig"><span style="height:4px;background:var(--black)"></span><span style="height:7px;background:var(--black)"></span><span style="height:10px;background:var(--black)"></span><span style="height:12px;background:var(--stone)"></span></div>
+          <div class="bat"><div class="bat-fill"></div></div>
+        </div>
+      </div>
+      <div class="top-bar">
+        <button class="back" id="back-btn">‹</button>
+        <div>
+          <div class="top-bar-title">Recording call</div>
+          <div class="top-bar-sub" id="rec-hcp-label">Dr. Sarah Patel</div>
+        </div>
+      </div>
+      <div class="hcp-pill">
+        <div class="hcp-pill-name" id="rec-hcp-name">Dr. Sarah Patel</div>
+        <div class="hcp-pill-sub" id="rec-hcp-detail">Endocrinology · Mounjaro</div>
+      </div>
+      <div class="rec-main">
+        <div class="pulse-wrap">
+          <div class="ring ring1" id="ring1"></div>
+          <div class="ring ring2" id="ring2"></div>
+          <button class="rec-btn" id="rec-btn">
+            <!-- Mic icon (shown before recording starts) -->
+            <svg class="icon-mic" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="9" y="2" width="6" height="11" rx="3"/>
+              <path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/>
+            </svg>
+            <!-- Stop square (shown while recording) -->
+            <div class="icon-stop rec-sq"></div>
+          </button>
+        </div>
+        <div class="rec-timer" id="timer">00:00</div>
+        <div class="rec-hint" id="rec-hint">Tap to start recording</div>
+        <div class="priv-badge">
+          <h4>Audio processed on-device only</h4>
+          <p>Raw audio never stored — encoded to abstract states in &lt;0.6s windows</p>
+        </div>
+      </div>
+      <div class="err-banner" id="rec-error"></div>
+      <div class="tip-box">
+        <h4>Speak naturally about:</h4>
+        <p>Products discussed · Key messages · HCP reactions · Follow-ups · Samples</p>
+      </div>
+    </div>
+
+    <!-- ③ PROCESSING -->
+    <div class="scr out-right" id="s-processing">
+      <div class="sbar" style="color:var(--black);background:var(--stone-t)">
+        <span class="sbar-time" style="color:var(--black)">9:41</span>
+        <div class="sbar-icons" style="color:var(--black)">
+          <div class="sig"><span style="height:4px;background:var(--black)"></span><span style="height:7px;background:var(--black)"></span><span style="height:10px;background:var(--black)"></span><span style="height:12px;background:var(--stone)"></span></div>
+          <div class="bat"><div class="bat-fill"></div></div>
+        </div>
+      </div>
+      <div class="proc-wrap">
+        <div class="p-logo">
+          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
+            <text x="18" y="26" text-anchor="middle" font-family="IBM Plex Sans, Arial" font-weight="700" font-size="24" fill="white">P</text>
+          </svg>
+        </div>
+        <div class="p-title">Pulse AI processing</div>
+        <div class="p-sub" id="proc-sub">Transcribing your recording…</div>
+        <div class="p-steps">
+          <div class="step dim" id="ps0"><div class="step-circle idle" id="pi0"></div><div class="step-text dim-t" id="pt0">Encoding audio chunks…</div></div>
+          <div class="step dim" id="ps1"><div class="step-circle idle" id="pi1"></div><div class="step-text dim-t">Decoding transcript…</div></div>
+          <div class="step dim" id="ps2"><div class="step-circle idle" id="pi2"></div><div class="step-text dim-t">Extracting structured data…</div></div>
+          <div class="step dim" id="ps3"><div class="step-circle idle" id="pi3"></div><div class="step-text dim-t">Finalizing summary…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ④ REVIEW -->
+    <div class="scr out-right" id="s-review">
+      <div class="sbar" style="color:var(--black);background:var(--white)">
+        <span class="sbar-time" style="color:var(--black)">9:41</span>
+        <div class="sbar-icons" style="color:var(--black)">
+          <div class="sig"><span style="height:4px;background:var(--black)"></span><span style="height:7px;background:var(--black)"></span><span style="height:10px;background:var(--black)"></span><span style="height:12px;background:var(--stone)"></span></div>
+          <div class="bat"><div class="bat-fill"></div></div>
+        </div>
+      </div>
+      <div class="review-head">
+        <h3>Review call summary</h3>
+        <p id="rev-hcp-label">Dr. Sarah Patel · Endocrinology</p>
+      </div>
+      <div class="review-body scroll" style="flex:1">
+        <div class="ok-banner">
+          <div class="ok-icon">✓</div>
+          <div><h4>Transcription complete</h4><p>Review the transcript below before submitting</p></div>
+        </div>
+        <div class="f">
+          <div class="lbl">HCP</div>
+          <div class="val val-rose" id="rev-hcp-name-display">Dr. Sarah Patel</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Product discussed</div>
+          <div class="val val-stone" id="rev-product">Mounjaro</div>
+        </div>
+
+        <div class="lbl" style="margin:16px 0 8px">Veeva CRM fields</div>
+
+        <div class="f">
+          <div class="lbl">Account</div>
+          <div class="val val-stone" contenteditable="true" id="rev-account">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Location</div>
+          <div class="val val-stone" contenteditable="true" id="rev-location">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Address</div>
+          <div class="val val-stone" contenteditable="true" id="rev-address">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Call DateTime</div>
+          <div class="val val-stone" contenteditable="true" id="rev-call-datetime">—</div>
+        </div>
+        <div class="f-row">
+          <div class="f">
+            <div class="lbl">Record type</div>
+            <div class="val val-stone" id="rev-record-type">Interaction</div>
+          </div>
+          <div class="f">
+            <div class="lbl">Engagement method</div>
+            <div class="val val-stone" contenteditable="true" id="rev-engagement-method">In-office</div>
+          </div>
+        </div>
+        <div class="f">
+          <div class="lbl">Virtual engagement tool</div>
+          <div class="val val-stone" id="rev-virtual-tool">N/A</div>
+        </div>
+
+        <div class="f">
+          <div class="lbl">Call transcript</div>
+          <div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:220px;overflow-y:auto">—</div>
+        </div>
+
+        <div class="lbl" style="margin:16px 0 8px">Extraction quality</div>
+        <div class="f-row">
+          <div class="stat-mini">
+            <div class="lbl">Fields extracted</div>
+            <div class="n" id="rev-fields-extracted" style="color:var(--green)">—</div>
+          </div>
+          <div class="stat-mini">
+            <div class="lbl">Fields null</div>
+            <div class="n" id="rev-fields-null" style="color:var(--red)">—</div>
+          </div>
+        </div>
+        <div class="f" style="margin-top:12px">
+          <div class="lbl">Recommended action</div>
+          <span class="tag tag-red" id="rev-recommended-action" style="font-size:11px">—</span>
+        </div>
+
+        <div class="lbl" style="margin:16px 0 8px">Call summary</div>
+        <div class="f">
+          <div class="lbl">Call overview</div>
+          <div class="val val-stone" id="rev-call-overview">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Products discussed</div>
+          <div class="val val-stone" id="rev-summary-products">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Key topics</div>
+          <div class="val val-stone" id="rev-key-topics">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">HCP response</div>
+          <div class="val val-stone" id="rev-hcp-response">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Objections raised</div>
+          <div class="val val-stone" id="rev-objections">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Next steps</div>
+          <div class="val val-stone" id="rev-next-steps">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Rep recommendations</div>
+          <div class="val val-stone" id="rev-rep-recommendations">—</div>
+        </div>
+
+        <div style="height:16px"></div>
+      </div>
+      <div class="review-foot">
+        <button class="btn-outline" id="edit-btn">Edit</button>
+        <button class="btn-submit" id="approve-btn">Approve &amp; submit</button>
+      </div>
+    </div>
+
+    <!-- ⑤ CONFIRMED -->
+    <div class="scr out-right" id="s-confirmed">
+      <div class="sbar" style="color:var(--black);background:var(--stone-t)">
+        <span class="sbar-time" style="color:var(--black)">9:41</span>
+        <div class="sbar-icons" style="color:var(--black)">
+          <div class="sig"><span style="height:4px;background:var(--black)"></span><span style="height:7px;background:var(--black)"></span><span style="height:10px;background:var(--black)"></span><span style="height:12px;background:var(--stone)"></span></div>
+          <div class="bat"><div class="bat-fill"></div></div>
+        </div>
+      </div>
+      <div class="conf-wrap">
+        <div class="tick-ring"><span class="tick-icon">✓</span></div>
+        <div class="conf-title">Call submitted</div>
+        <div class="conf-sub" id="conf-txt">Call report has been logged in Veeva CRM</div>
+        <div class="sum-card">
+          <div class="sum-label">What was submitted</div>
+          <div class="sum-row"><span class="sum-k">HCP</span><span class="sum-v" id="conf-hcp">—</span></div>
+          <div class="sum-row"><span class="sum-k">Product</span><span class="sum-v" id="conf-product">—</span></div>
+          <div class="sum-row"><span class="sum-k">Recording length</span><span class="sum-v" id="conf-duration">—</span></div>
+          <div class="sum-row"><span class="sum-k">Transcript words</span><span class="sum-v" id="conf-words">—</span></div>
+        </div>
+        <div class="saved-box">
+          <h4>Time saved vs manual entry</h4>
+          <div class="big">~2m 30s</div>
+          <div><small>per call · 60k calls/day = 2,500 hrs saved daily</small></div>
+        </div>
+        <button class="btn-done" id="done-btn">Back to calls</button>
+      </div>
+    </div>
+
+  </div><!-- /screens -->
+  <div class="hindicator"><div class="hbar"></div></div>
+</div>
+
+<script>
+// ─────────────────────────────────────────────────────────────────────────────
+// Screen navigation
+// ─────────────────────────────────────────────────────────────────────────────
+const ORDER = ['home','recording','processing','review','confirmed'];
+let navHistory = [];
+
+function show(id) {
+  const prevEl = document.querySelector('.scr.visible');
+  if (prevEl) {
+    const prevId = prevEl.id.replace('s-', '');
+    const forward = ORDER.indexOf(id) > ORDER.indexOf(prevId);
+    prevEl.classList.remove('visible');
+    prevEl.classList.add(forward ? 'out-left' : 'out-right');
+    navHistory.push(prevId);
+  }
+  const next = document.getElementById('s-' + id);
+  next.classList.remove('out-left', 'out-right');
+  next.classList.add('visible');
+}
+
+function goBack() {
+  abortRecording();
+  const prev = navHistory.pop() || 'home';
+  const cur = document.querySelector('.scr.visible');
+  cur.classList.remove('visible');
+  cur.classList.add('out-right');
+  const prevEl = document.getElementById('s-' + prev);
+  prevEl.classList.remove('out-left', 'out-right');
+  prevEl.classList.add('visible');
+}
+
+function goHome() {
+  navHistory = [];
+  const cur = document.querySelector('.scr.visible');
+  cur.classList.remove('visible');
+  cur.classList.add('out-right');
+  const home = document.getElementById('s-home');
+  home.classList.remove('out-left', 'out-right');
+  home.classList.add('visible');
+  fetchCalls();    // refresh stats
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Clock
+// ─────────────────────────────────────────────────────────────────────────────
+function updateClocks() {
+  const now  = new Date();
+  const hh   = now.getHours().toString().padStart(2, '0');
+  const mm   = now.getMinutes().toString().padStart(2, '0');
+  const t    = `${hh}:${mm}`;
+  document.getElementById('clock-home').textContent = t;
+  document.getElementById('clock-rec').textContent  = t;
+}
+updateClocks();
+setInterval(updateClocks, 30000);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Date greeting
+// ─────────────────────────────────────────────────────────────────────────────
+(function() {
+  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now    = new Date();
+  document.getElementById('home-date').textContent =
+    `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+})();
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Call list — fetched from /api/calls
+// ─────────────────────────────────────────────────────────────────────────────
+let allCalls = [];
+
+async function fetchCalls() {
+  try {
+    const res  = await fetch('/api/calls');
+    allCalls   = await res.json();
+    renderCallList(allCalls);
+  } catch (e) {
+    document.getElementById('call-list').innerHTML =
+      `<div style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load calls.</div>`;
+  }
+}
+
+function renderCallList(calls) {
+  const total   = calls.length;
+  const done    = calls.filter(c => c.status === 'done').length;
+  const pending = total - done;
+  document.getElementById('stat-total').textContent   = total;
+  document.getElementById('stat-done').textContent    = done;
+  document.getElementById('stat-pending').textContent = pending;
+
+  const list = document.getElementById('call-list');
+  list.innerHTML = calls.map(c => {
+    const isDone = c.status === 'done';
+    const startBtn = isDone ? '' :
+      `<button class="btn-primary" onclick="event.stopPropagation();openCall('${c.id}')">Start</button>`;
+    const doneTag = isDone ? `<span class="tag tag-green" style="font-size:9px">Done</span>` : '';
+    return `
+      <div class="card${isDone ? ' done' : ''}" ${isDone ? '' : `onclick="openCall('${c.id}')"`}>
+        <div>
+          <div class="card-name">${esc(c.hcp_name)} ${doneTag}</div>
+          <div class="card-spec">${esc(c.specialty)}</div>
+          <div class="card-loc">${esc(c.location)}</div>
+        </div>
+        <div class="card-right">
+          <div class="tag tag-red">${esc(c.product)}</div>
+          ${startBtn}
+        </div>
+      </div>`;
+  }).join('');
+}
+
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Open a call → recording screen
+// ─────────────────────────────────────────────────────────────────────────────
+let currentCall = {};
+let recTimerInt = null;
+let recSecs     = 0;
+
+function openCall(callId) {
+  const call = allCalls.find(c => c.id === callId);
+  if (!call) return;
+  currentCall = call;
+
+  document.getElementById('rec-hcp-label').textContent  = call.hcp_name;
+  document.getElementById('rec-hcp-name').textContent   = call.hcp_name;
+  document.getElementById('rec-hcp-detail').textContent = `${call.specialty} · ${call.product}`;
+
+  // Reset recording UI
+  recSecs = 0;
+  document.getElementById('timer').textContent = '00:00';
+  document.getElementById('rec-hint').textContent = 'Tap to start recording';
+  document.getElementById('rec-btn').classList.remove('recording');
+  document.getElementById('ring1').classList.remove('pulsing');
+  document.getElementById('ring2').classList.remove('pulsing');
+  document.getElementById('rec-error').classList.remove('visible');
+  document.getElementById('rec-error').textContent = '';
+  clearInterval(recTimerInt);
+
+  show('recording');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Recording — AudioWorklet + WebSocket streaming pipeline
+// ─────────────────────────────────────────────────────────────────────────────
+let audioCtx         = null;
+let workletNode      = null;
+let micStream        = null;
+let ws               = null;
+let isRecording      = false;
+let transcriptReady  = false;   // set true once server sends transcript; guards onclose
+
+document.getElementById('rec-btn').addEventListener('click', () => {
+  if (!isRecording) {
+    startRecording();
+  } else {
+    stopRecording();
+  }
+});
+
+async function startRecording() {
+  const errBanner = document.getElementById('rec-error');
+  errBanner.classList.remove('visible');
+  errBanner.textContent = '';
+  transcriptReady = false;
+
+  try {
+    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
+  } catch (e) {
+    showRecError('Microphone access denied. Please allow microphone permission and try again.');
+    return;
+  }
+
+  // Create AudioContext; note: sampleRate varies by device (usually 48000)
+  audioCtx = new AudioContext();
+  const actualRate = audioCtx.sampleRate;
+
+  // Open WebSocket before loading worklet so it's ready immediately
+  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
+  ws = new WebSocket(`${wsProto}://${location.host}/ws/transcribe`);
+  ws.binaryType = 'arraybuffer';
+
+  await new Promise((resolve, reject) => {
+    ws.onopen    = resolve;
+    ws.onerror   = () => reject(new Error('WebSocket connection failed'));
+    ws.onclose   = (e) => { if (!e.wasClean) reject(new Error('WebSocket closed unexpectedly')); };
+  }).catch(e => { showRecError(e.message); teardownAudio(); throw e; });
+
+  // Send sample rate so server resamples correctly
+  ws.send(JSON.stringify({ sampleRate: actualRate }));
+
+  // Handle messages from server
+  ws.onmessage = handleWsMessage;
+  ws.onerror   = () => showRecError('Server connection error.');
+  ws.onclose   = (e) => {
+    if (!e.wasClean && !transcriptReady) {
+      const onProcessing = document.getElementById('s-processing').classList.contains('visible');
+      if (onProcessing) {
+        show('recording');
+        showRecError('Server connection lost during processing. Please try again.');
+      } else if (isRecording) {
+        showRecError('Server disconnected.');
+      }
+    }
+  };
+
+  // Load AudioWorklet
+  try {
+    await audioCtx.audioWorklet.addModule('/static/recorder-worklet.js');
+  } catch (e) {
+    showRecError('Failed to load audio worklet: ' + e.message);
+    teardownAudio();
+    return;
+  }
+
+  const source = audioCtx.createMediaStreamSource(micStream);
+  workletNode  = new AudioWorkletNode(audioCtx, 'pulse-recorder');
+
+  workletNode.port.onmessage = (e) => {
+    const { type, buffer } = e.data;
+    if (type === 'pcm' && ws && ws.readyState === WebSocket.OPEN) {
+      ws.send(buffer);    // raw float32 binary frame
+    }
+    // 'done' message: worklet has flushed — we've already sent 'stop' via ws
+  };
+
+  source.connect(workletNode);
+  workletNode.connect(audioCtx.destination);   // required for worklet to process
+
+  isRecording = true;
+  document.getElementById('rec-btn').classList.add('recording');
+  document.getElementById('ring1').classList.add('pulsing');
+  document.getElementById('ring2').classList.add('pulsing');
+  document.getElementById('rec-hint').textContent = 'Tap to stop';
+
+  recSecs = 0;
+  clearInterval(recTimerInt);
+  recTimerInt = setInterval(() => {
+    recSecs++;
+    const m = Math.floor(recSecs / 60).toString().padStart(2, '0');
+    const s = (recSecs % 60).toString().padStart(2, '0');
+    document.getElementById('timer').textContent = `${m}:${s}`;
+  }, 1000);
+}
+
+function stopRecording() {
+  if (!isRecording) return;
+  isRecording = false;
+  clearInterval(recTimerInt);
+
+  // Signal worklet to flush remaining PCM, then tell server we're done
+  if (workletNode) {
+    workletNode.port.postMessage('stop');
+    // Give worklet a tick to flush before sending 'stop' to server
+    setTimeout(() => {
+      if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
+    }, 80);
+  } else {
+    if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
+  }
+
+  // Transition to processing screen immediately; transcript arrives async
+  show('processing');
+  runProcessingAnimation();
+
+  // Stop mic tracks (raw audio is gone)
+  if (micStream) micStream.getTracks().forEach(t => t.stop());
+}
+
+function abortRecording() {
+  if (!isRecording) return;
+  isRecording = false;
+  clearInterval(recTimerInt);
+  if (workletNode) workletNode.port.postMessage('stop');
+  if (ws) ws.close();
+  teardownAudio();
+}
+
+function teardownAudio() {
+  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
+  if (workletNode) { workletNode.disconnect(); workletNode = null; }
+  if (audioCtx)  { audioCtx.close(); audioCtx = null; }
+}
+
+function showRecError(msg) {
+  const b = document.getElementById('rec-error');
+  b.textContent = msg;
+  b.classList.add('visible');
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// WebSocket message handler
+// ─────────────────────────────────────────────────────────────────────────────
+let chunksEncoded = 0;
+
+function handleWsMessage(event) {
+  const msg = JSON.parse(event.data);
+
+  if (msg.type === 'chunk_encoded') {
+    chunksEncoded = msg.index;
+    // Advance processing step 0 label to show live progress
+    const pt0 = document.getElementById('pt0');
+    if (pt0) pt0.textContent = `Encoding audio chunks… (${chunksEncoded} encoded)`;
+  }
+
+  if (msg.type === 'decoding') {
+    // All chunks encoded — advance animation to the decode step
+    clearInterval(procAnimInt);
+    // Make sure step 0 is marked done and step 1 is active
+    while (procStep <= 1) advanceProcStep();
+    document.getElementById('proc-sub').textContent = 'Decoding transcript…';
+  }
+
+  if (msg.type === 'transcript') {
+    // Transcript arrives first, before the Cortex pipeline has run.
+    // Show the review screen right away with placeholder CRM fields;
+    // they'll be filled in a moment later when 'fields' arrives.
+    transcriptReady = true;   // guard onclose before any async delay
+    teardownAudio();
+    goReview(msg.text, null);
+  }
+
+  if (msg.type === 'status') {
+    // server.py sends {"type":"status","message":"Running compliance analysis..."}
+    // right before kicking off the Cortex pipeline in the background thread.
+    const sub = document.getElementById('proc-sub');
+    if (sub) sub.textContent = msg.message;
+  }
+
+  if (msg.type === 'compliance') {
+    // pipeline_result["compliance"] from server.py — status badge, violations, etc.
+    // Not yet wired to a UI element on this screen; hook in here if/when needed.
+  }
+
+  if (msg.type === 'fields') {
+    // pipeline_result["fields"] from fieldExtraction.py, sent as {"type":"fields","data":{...}}
+    // Populate the Veeva CRM section once extraction completes.
+    applyFields(msg.data);
+  }
+
+  if (msg.type === 'summary') {
+    // pipeline_result["summary"] from summaryField.py, sent as {"type":"summary","data":{...}}
+    applySummary(msg.data);
+  }
+
+  if (msg.type === 'error') {
+    teardownAudio();
+    // Go back to recording screen and show error
+    show('recording');
+    showRecError('Transcription error: ' + msg.message);
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Processing animation (runs while transcript is being generated server-side)
+// ─────────────────────────────────────────────────────────────────────────────
+const PROC_STEPS = [
+  'Encoding audio chunks…',
+  'Decoding transcript…',
+  'Extracting structured data…',
+  'Finalizing summary…',
+];
+let procAnimInt = null;
+let procStep    = 0;
+
+function runProcessingAnimation() {
+  // Reset all steps
+  for (let i = 0; i < 4; i++) {
+    const ps = document.getElementById('ps' + i);
+    const pi = document.getElementById('pi' + i);
+    ps.classList.add('dim');
+    pi.className = 'step-circle idle';
+    pi.innerHTML = '';
+    ps.querySelector('.step-text').className = 'step-text dim-t';
+  }
+  chunksEncoded = 0;
+  procStep = 0;
+
+  // Advance first step immediately
+  advanceProcStep();
+
+  // Steps 1-2 advance on a timer as placeholders;
+  // step 1 advances once server confirms encoding is happening,
+  // and the final step is held until transcript arrives.
+  procAnimInt = setInterval(() => {
+    if (procStep < 2) advanceProcStep();
+  }, 1800);
+}
+
+function advanceProcStep() {
+  // Mark previous as done
+  if (procStep > 0) {
+    const prev = procStep - 1;
+    document.getElementById('pi' + prev).className = 'step-circle done';
+    document.getElementById('pi' + prev).innerHTML = '<span class="step-check">✓</span>';
+    document.getElementById('ps' + prev).querySelector('.step-text').className = 'step-text done-t';
+  }
+  if (procStep < 4) {
+    const ps = document.getElementById('ps' + procStep);
+    const pi = document.getElementById('pi' + procStep);
+    ps.classList.remove('dim');
+    pi.className = 'step-circle active';
+    pi.innerHTML = '<div class="step-dot"></div>';
+    ps.querySelector('.step-text').className = 'step-text';
+    procStep++;
+  }
+}
+
+function finishProcessingAnimation() {
+  clearInterval(procAnimInt);
+  // Drive all steps to active state, then mark the last one done
+  while (procStep < 4) advanceProcStep();
+  advanceProcStep();   // procStep is now 4: marks step 3 as done, no further increment
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Review screen
+// ─────────────────────────────────────────────────────────────────────────────
+let currentTranscript = '';
+let currentFields      = {};
+
+function goReview(transcript, fields) {
+  finishProcessingAnimation();
+  currentTranscript = transcript || '(no speech detected)';
+
+  document.getElementById('rev-hcp-label').textContent         = `${currentCall.hcp_name} · ${currentCall.specialty}`;
+  document.getElementById('rev-hcp-name-display').textContent  = currentCall.hcp_name;
+  document.getElementById('rev-product').textContent           = currentCall.product;
+  document.getElementById('rev-transcript').textContent        = currentTranscript;
+
+  // The Cortex pipeline (compliance → field extraction → summary) runs
+  // server-side AFTER the transcript is sent, so on first paint the CRM
+  // fields below are still unknown. applyFields() fills them in a moment
+  // later once server.py's "fields" WebSocket message arrives.
+  applyFields(fields || {});
+  applySummary(null);
+
+  show('review');
+}
+
+function applyFields(fields) {
+  currentFields = fields || {};
+
+  // Veeva CRM fields — keys match fieldExtraction.py's return dict exactly
+  // (account, location, address, call_datetime, record_type,
+  // engagement_method, virtual_engagement_tool, fields_extracted,
+  // fields_null, recommended_action).
+  document.getElementById('rev-account').textContent            = currentFields.account              || '—';
+  document.getElementById('rev-location').textContent           = currentFields.location              || '—';
+  document.getElementById('rev-address').textContent            = currentFields.address               || '—';
+  document.getElementById('rev-call-datetime').textContent      = currentFields.call_datetime         || '—';
+  document.getElementById('rev-record-type').textContent        = currentFields.record_type           || 'Interaction';
+  document.getElementById('rev-engagement-method').textContent  = currentFields.engagement_method     || 'In-office';
+  document.getElementById('rev-virtual-tool').textContent       = currentFields.virtual_engagement_tool || 'N/A';
+
+  // Extraction quality metadata
+  document.getElementById('rev-fields-extracted').textContent   =
+    (currentFields.fields_extracted !== undefined && currentFields.fields_extracted !== null) ? currentFields.fields_extracted : '—';
+  document.getElementById('rev-fields-null').textContent        =
+    (currentFields.fields_null !== undefined && currentFields.fields_null !== null) ? currentFields.fields_null : '—';
+  document.getElementById('rev-recommended-action').textContent = currentFields.recommended_action    || '—';
+}
+
+function applySummary(summary) {
+  // Summary Fairy fields — keys match summaryField.py's return dict exactly
+  // (call_overview, products_discussed, key_topics, hcp_response,
+  // objections_raised, next_steps, rep_recommendations).
+  const s = summary || {};
+  document.getElementById('rev-call-overview').textContent       = s.call_overview       || 'N/A';
+  document.getElementById('rev-summary-products').textContent    = s.products_discussed  || 'N/A';
+  document.getElementById('rev-key-topics').textContent          = s.key_topics          || 'N/A';
+  document.getElementById('rev-hcp-response').textContent        = s.hcp_response        || 'N/A';
+  document.getElementById('rev-objections').textContent          = s.objections_raised   || 'N/A';
+  document.getElementById('rev-next-steps').textContent          = s.next_steps          || 'N/A';
+  document.getElementById('rev-rep-recommendations').textContent = s.rep_recommendations || 'N/A';
+}
+
+document.getElementById('approve-btn').addEventListener('click', () => {
+  const wordCount = currentTranscript.trim().split(/\s+/).filter(Boolean).length;
+  const mins  = Math.floor(recSecs / 60);
+  const secs  = recSecs % 60;
+  const durStr = recSecs > 0
+    ? `${mins > 0 ? mins + 'm ' : ''}${secs}s`
+    : '—';
+
+  document.getElementById('conf-txt').textContent   = `Call report for ${currentCall.hcp_name} has been logged in Veeva CRM`;
+  document.getElementById('conf-hcp').textContent   = currentCall.hcp_name;
+  document.getElementById('conf-product').textContent = currentCall.product;
+  document.getElementById('conf-duration').textContent = durStr;
+  document.getElementById('conf-words').textContent = wordCount + ' words';
+
+  // Mark call as done in local state
+  const call = allCalls.find(c => c.id === currentCall.id);
+  if (call) call.status = 'done';
+
+  show('confirmed');
+});
+
+document.getElementById('edit-btn').addEventListener('click', () => {
+  // For now: make the transcript editable inline
+  const el = document.getElementById('rev-transcript');
+  el.contentEditable = 'true';
+  el.focus();
+  el.style.outline = '2px solid var(--red)';
+  document.getElementById('edit-btn').textContent = 'Done';
+  document.getElementById('edit-btn').onclick = () => {
+    el.contentEditable = 'false';
+    el.style.outline = '';
+    currentTranscript = el.textContent;
+    document.getElementById('edit-btn').textContent = 'Edit';
+    document.getElementById('edit-btn').onclick = null;
+  };
+});
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Wire up remaining buttons
+// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('back-btn').addEventListener('click', goBack);
+document.getElementById('done-btn').addEventListener('click', goHome);
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Boot
+// ─────────────────────────────────────────────────────────────────────────────
+fetchCalls();
+</script>
+</body>
+</html>

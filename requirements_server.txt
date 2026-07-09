@@ -1,0 +1,14 @@
+# Pulse AI — server dependencies
+# Install with: pip install -r requirements_server.txt
+
+fastapi>=0.111.0
+python-multipart>=0.0.9   # needed by FastAPI for form parsing
+websockets>=12.0           # ASGI WebSocket support
+scipy>=1.13.0              # audio resampling (resample_poly)
+
+# Already present in the existing venv (no version pin needed):
+# uvicorn   — already installed
+# torch     — already installed
+# transformers — already installed
+# numpy     — already installed
+# soundfile — already installed

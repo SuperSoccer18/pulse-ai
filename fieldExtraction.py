@@ -23,6 +23,8 @@ import logging
 # datetime records when extraction events happen during the session
 from datetime import datetime
 
+import json
+
 # LIGHTClient handles Lilly authentication automatically
 from light_client import LIGHTClient
 
@@ -168,8 +170,26 @@ class FieldExtraction:
             log.error(f"{extraction_id}: API call failed — {e}")
             return None
 
+    def _extract_model_text(self, raw: str) -> str:
+        """Parses the Cortex JSON envelope and returns the actual model output text."""
+        try:
+            data = json.loads(raw)
+        except json.JSONDecodeError:
+            # Not JSON — must already be plain text, use as-is
+            return raw
+
+        model_text = data.get("message")
+
+        if not model_text:
+            model_text = raw  # fallback, will likely fail parsing but won't crash
+
+        # Un-escape literal \n so downstream extract_field() newline search works
+        return model_text.replace("\\n", "\n")
+
 
     def _parse(self, raw: str, extraction_id: str) -> dict:
+        raw = self._extract_model_text(raw)  
+
         """
         Parses the raw Field Extraction Gnome response into structured
         Veeva CRM fields matching the output schema.
@@ -197,7 +217,7 @@ class FieldExtraction:
                 return None
             start = raw.find(label) + len(label)
             end = raw.find("\n", start)
-            value = raw[start:end if end != -1 else len(raw)].strip().strip('"')
+            value = raw[start:end if end != -1 else len(raw)].strip().strip('"').rstrip(",").strip()
             return None if value.lower() in ("null", "none", "") else value
 
         # Extract each Veeva CRM field from the response text
