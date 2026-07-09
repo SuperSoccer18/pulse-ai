@@ -12,5 +12,4 @@ __pycache__/
 models/
 
 # Environment variables
-cortexAuthenticator.py
 .env
