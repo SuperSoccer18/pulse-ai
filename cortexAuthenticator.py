@@ -65,7 +65,7 @@ def get_bearer_token() -> str:
     global _cached_token, _token_expiry
  
     # Check if we have a cached token that is still valid
-    # datetime.utcnow() gets the current UTC time for comparison
+    # datetime.now(timezone.utc) gets the current UTC time for comparison
     # timedelta converts the buffer seconds into a time delta for subtraction
     if (
         _cached_token is not None and

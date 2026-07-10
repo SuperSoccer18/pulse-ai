@@ -21,7 +21,7 @@ import requests
 import logging
 
 # datetime records when compliance events happen during the session
-from datetime import datetime
+from datetime import datetime, timezone
 
 # sys lets us exit with a non-zero code on critical startup failures
 import sys
@@ -95,7 +95,7 @@ class ComplianceLayer:
         self.cleaned_chunks = []
 
         # session_start records when this ComplianceLayer was initialized
-        self.session_start = datetime.utcnow()
+        self.session_start = datetime.now(timezone.utc)
 
         log.info("ComplianceLayer initialized")
 
@@ -301,7 +301,7 @@ class ComplianceLayer:
             "violations":         violations,
             "recommended_action": action,
             "raw_response":       raw,
-            "timestamp":          datetime.utcnow().isoformat(),
+            "timestamp":          datetime.now(timezone.utc).isoformat(),
         }
 
     def _handle(self, chunk_id: str, result: dict) -> None:
@@ -328,7 +328,7 @@ class ComplianceLayer:
 
     def get_session_summary(self) -> dict:
         """Returns a summary of all compliance activity this session."""
-        duration = (datetime.utcnow() - self.session_start).seconds
+        duration = (datetime.now(timezone.utc) - self.session_start).seconds
         return {
             "chunks_analyzed":    self.chunks_analyzed,
             "session_halted":     self.session_halted,
@@ -348,7 +348,7 @@ class ComplianceLayer:
             "violations":         ["Cortex API call failed — manual review required"],
             "recommended_action": "REVIEW",
             "raw_response":       "",
-            "timestamp":          datetime.utcnow().isoformat(),
+            "timestamp":          datetime.now(timezone.utc).isoformat(),
         }
 
     def _halted_result(self) -> dict:
@@ -361,7 +361,7 @@ class ComplianceLayer:
             "violations":         ["Session halted by prior CRITICAL violation"],
             "recommended_action": "HALT",
             "raw_response":       "",
-            "timestamp":          datetime.utcnow().isoformat(),
+            "timestamp":          datetime.now(timezone.utc).isoformat(),
         }
 
 # ─────────────────────────────────────────────────────────────────────────────

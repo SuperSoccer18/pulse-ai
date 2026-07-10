@@ -21,7 +21,7 @@ import requests
 import logging
 
 # datetime records when extraction events happen during the session
-from datetime import datetime
+from datetime import datetime, timezone, timezone
 
 # json is used to attempt JSON parsing of structured Cortex responses
 import json
@@ -87,7 +87,7 @@ class FieldExtraction:
         self.extractions_run = 0
 
         # session_start records when this FieldExtraction was initialized
-        self.session_start = datetime.utcnow()
+        self.session_start = datetime.now(timezone.utc)
 
         log.info("FieldExtraction initialized")
 
@@ -342,7 +342,7 @@ class FieldExtraction:
             "fields_null":            fields_null,
             "recommended_action":     action,
             "raw_response":           raw,
-            "timestamp":              datetime.utcnow().isoformat(),
+            "timestamp":              datetime.now(timezone.utc).isoformat(),
         }
 
     # ── Fallback result constructors ──────────────────────────────────────────
@@ -364,7 +364,7 @@ class FieldExtraction:
             "fields_null":            5,
             "recommended_action":     "REVIEW",
             "raw_response":           "",
-            "timestamp":              datetime.utcnow().isoformat(),
+            "timestamp":              datetime.now(timezone.utc).isoformat(),
         }
 
     def _error_result(self, extraction_id: str) -> dict:

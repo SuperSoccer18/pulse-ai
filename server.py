@@ -48,6 +48,10 @@ from transformers.models.moonshine_streaming.modeling_moonshine_streaming import
     MoonshineStreamingEncoderModelOutput,
 )
 
+from complianceLayer import ComplianceLayer
+from fieldExtraction import FieldExtraction
+from summaryField import SummaryField
+
 from transcribe_streaming_experiment import (
     SAMPLE_RATE,
     CHUNK_SAMPLES,
@@ -180,6 +184,39 @@ def _sync_decode(accumulated_hidden, accumulated_masks):
     return _processor.batch_decode(ids, skip_special_tokens=True)[0].strip()
 
 
+def _sync_pipeline(transcript: str) -> dict:
+    """
+    Runs the full post-transcription Cortex pipeline synchronously.
+    Called via run_in_executor so it does not block the event loop.
+
+    Returns a dict with type "pipeline_complete" or "pipeline_halted".
+    """
+    compliance = ComplianceLayer().analyze(transcript)
+
+    # If compliance halted the session, stop here — do not run extraction/summary
+    if compliance["recommended_action"] == "HALT":
+        logging.warning("Compliance HALT — skipping field extraction and summary")
+        return {
+            "type":       "pipeline_halted",
+            "compliance": compliance,
+        }
+
+    # Use cleaned_transcript if Compliance Goblin returned one; fall back to
+    # the raw transcript so field extraction always has something to work with
+    cleaned = compliance.get("cleaned_transcript") or transcript
+
+    extraction = FieldExtraction().extract(cleaned)
+    summary    = SummaryField().summarize(cleaned)
+
+    return {
+        "type":       "pipeline_complete",
+        "transcript": transcript,
+        "compliance": compliance,
+        "extraction": extraction,
+        "summary":    summary,
+    }
+
+
 @app.websocket("/ws/transcribe")
 async def ws_transcribe(websocket: WebSocket):
     await websocket.accept()
@@ -252,7 +289,16 @@ async def ws_transcribe(websocket: WebSocket):
                     )
                     logging.info(f"Decode complete: {len(transcript)} chars")
 
-                    await websocket.send_json({"type": "transcript", "text": transcript})
+                    # Run compliance → extraction → summary on the thread pool
+                    await websocket.send_json({"type": "pipeline_running"})
+                    result = await loop.run_in_executor(
+                        _executor,
+                        _sync_pipeline,
+                        transcript,
+                    )
+                    logging.info(f"Pipeline complete: type={result['type']}")
+
+                    await websocket.send_json(result)
                     await websocket.close()
                     break
 

@@ -22,7 +22,7 @@ import requests
 import logging
 
 # datetime records when summary events happen during the session
-from datetime import datetime
+from datetime import datetime, timezone
 
 # get_bearer_token obtains the Azure AD OAuth2 Bearer token for Cortex
 # Reuses the same cached token as complianceLayer.py if still valid
@@ -86,7 +86,7 @@ class SummaryField:
         self.summaries_run = 0
 
         # session_start records when this SummaryField was initialized
-        self.session_start = datetime.utcnow()
+        self.session_start = datetime.now(timezone.utc)
 
         log.info("SummaryField initialized")
 
@@ -287,7 +287,7 @@ class SummaryField:
             "next_steps":          next_steps,
             "rep_recommendations": rep_recommendations,
             "raw_response":        raw,
-            "timestamp":           datetime.utcnow().isoformat(),
+            "timestamp":           datetime.now(timezone.utc).isoformat(),
         }
 
     # ── Fallback result constructors ──────────────────────────────────────────
@@ -304,7 +304,7 @@ class SummaryField:
             "next_steps":          "N/A",
             "rep_recommendations": "N/A",
             "raw_response":        "",
-            "timestamp":           datetime.utcnow().isoformat(),
+            "timestamp":           datetime.now(timezone.utc).isoformat(),
         }
 
     def _error_result(self, summary_id: str) -> dict:

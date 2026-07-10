@@ -141,6 +141,14 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .ok-icon{font-size:18px;line-height:1;color:var(--green)}
 .ok-banner h4{font-size:13px;font-weight:600;color:var(--green)}
 .ok-banner p{font-size:11px;color:var(--green);opacity:0.85;margin-top:1px;font-weight:400}
+.warn-banner{background:#FFFBEC;border-radius:10px;padding:11px 15px;display:flex;align-items:flex-start;gap:11px;margin-bottom:16px;border:1px solid var(--gold)}
+.warn-icon{font-size:18px;line-height:1}
+.warn-banner h4{font-size:13px;font-weight:600;color:#7A5C00}
+.warn-banner p{font-size:11px;color:#7A5C00;opacity:0.85;margin-top:1px;font-weight:400}
+.halt-banner{background:var(--rose);border-radius:10px;padding:11px 15px;display:flex;align-items:flex-start;gap:11px;margin-bottom:16px;border:1px solid var(--coral)}
+.halt-icon{font-size:18px;line-height:1}
+.halt-banner h4{font-size:13px;font-weight:600;color:var(--red)}
+.halt-banner p{font-size:11px;color:var(--red);opacity:0.85;margin-top:1px;font-weight:400}
 .f{margin-bottom:12px}
 .lbl{font-size:10px;font-weight:700;color:var(--gray);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px}
 .val{border-radius:8px;padding:9px 13px;font-size:13px;line-height:1.5;font-weight:400}
@@ -152,6 +160,11 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .btn-outline:active{opacity:0.75}
 .btn-submit{flex:2;background:var(--red);color:var(--white);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:-0.2px;transition:opacity 0.1s}
 .btn-submit:active{opacity:0.82}
+.btn-submit:disabled{opacity:0.4;cursor:not-allowed}
+.products-list{display:flex;flex-direction:column;gap:8px}
+.product-item{background:var(--white);border:1px solid var(--stone);border-radius:8px;padding:9px 13px}
+.product-name{font-size:13px;font-weight:600;color:var(--black)}
+.product-indication{font-size:11px;color:var(--gray);margin-top:3px;font-weight:400}
 
 /* ── CONFIRMED SCREEN ── */
 .conf-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:var(--stone-t)}
@@ -320,24 +333,47 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
         <p id="rev-hcp-label">Dr. Sarah Patel · Endocrinology</p>
       </div>
       <div class="review-body scroll" style="flex:1">
-        <div class="ok-banner">
-          <div class="ok-icon">✓</div>
-          <div><h4>Transcription complete</h4><p>Review the transcript below before submitting</p></div>
-        </div>
+        <!-- Compliance status banner — swapped by JS -->
+        <div id="rev-compliance-banner"></div>
         <div class="f">
           <div class="lbl">HCP</div>
           <div class="val val-rose" id="rev-hcp-name-display">Dr. Sarah Patel</div>
         </div>
         <div class="f">
-          <div class="lbl">Product discussed</div>
-          <div class="val val-stone" id="rev-product">Mounjaro</div>
+          <div class="lbl">Account / Location</div>
+          <div class="val val-stone" id="rev-account">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Address</div>
+          <div class="val val-stone" id="rev-address">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Call date &amp; time</div>
+          <div class="val val-stone" id="rev-datetime">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Record type</div>
+          <div class="val val-stone" id="rev-record-type">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Engagement method</div>
+          <div class="val val-stone" id="rev-engagement-method">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Virtual engagement tool</div>
+          <div class="val val-stone" id="rev-virtual-tool">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Products discussed</div>
+          <div class="products-list" id="rev-products"></div>
+        </div>
+        <div class="f">
+          <div class="lbl">Interaction notes</div>
+          <div class="val val-stone" id="rev-notes" style="white-space:pre-wrap;min-height:48px">—</div>
         </div>
         <div class="f">
           <div class="lbl">Call transcript</div>
-          <div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:220px;overflow-y:auto">—</div>
-        </div>
-        <div class="f" style="color:var(--gray);font-size:11px;text-align:center;padding:4px 0">
-          Structured output (products, sentiment, follow-ups) coming soon via LLM postprocessing.
+          <div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:180px;overflow-y:auto">—</div>
         </div>
         <div style="height:16px"></div>
       </div>
@@ -685,28 +721,36 @@ function handleWsMessage(event) {
 
   if (msg.type === 'chunk_encoded') {
     chunksEncoded = msg.index;
-    // Advance processing step 0 label to show live progress
     const pt0 = document.getElementById('pt0');
     if (pt0) pt0.textContent = `Encoding audio chunks… (${chunksEncoded} encoded)`;
   }
 
   if (msg.type === 'decoding') {
-    // All chunks encoded — advance animation to the decode step
     clearInterval(procAnimInt);
-    // Make sure step 0 is marked done and step 1 is active
     while (procStep <= 1) advanceProcStep();
     document.getElementById('proc-sub').textContent = 'Decoding transcript…';
   }
 
-  if (msg.type === 'transcript') {
-    transcriptReady = true;   // guard onclose before any async delay
+  if (msg.type === 'pipeline_running') {
+    // Transcript decoded — advance animation to extraction/summary steps
+    while (procStep <= 2) advanceProcStep();
+    document.getElementById('proc-sub').textContent = 'Running compliance & extraction…';
+  }
+
+  if (msg.type === 'pipeline_complete') {
+    transcriptReady = true;
     teardownAudio();
-    goReview(msg.text);
+    goReview(msg);
+  }
+
+  if (msg.type === 'pipeline_halted') {
+    transcriptReady = true;
+    teardownAudio();
+    goReviewHalted(msg);
   }
 
   if (msg.type === 'error') {
     teardownAudio();
-    // Go back to recording screen and show error
     show('recording');
     showRecError('Transcription error: ' + msg.message);
   }
@@ -778,15 +822,103 @@ function finishProcessingAnimation() {
 // Review screen
 // ─────────────────────────────────────────────────────────────────────────────
 let currentTranscript = '';
+let currentPipelineResult = null;
 
-function goReview(transcript) {
+function buildComplianceBanner(compliance) {
+  const status = (compliance && compliance.compliance_status) || 'CLEAN';
+  if (status === 'CLEAN') {
+    return `<div class="ok-banner">
+      <div class="ok-icon">✓</div>
+      <div><h4>Compliance check passed</h4><p>No PI or AECP violations detected</p></div>
+    </div>`;
+  }
+  if (status === 'ADVISORY') {
+    return `<div class="warn-banner">
+      <div class="warn-icon">ℹ️</div>
+      <div><h4>Advisory — low-level notice</h4><p>${formatViolations(compliance.violations)}</p></div>
+    </div>`;
+  }
+  if (status === 'WARNING') {
+    return `<div class="warn-banner">
+      <div class="warn-icon">⚠️</div>
+      <div><h4>Compliance warning</h4><p>${formatViolations(compliance.violations)}</p></div>
+    </div>`;
+  }
+  // CRITICAL — should be caught as pipeline_halted, but handle here defensively
+  return `<div class="halt-banner">
+    <div class="halt-icon">🛑</div>
+    <div><h4>Critical compliance issue</h4><p>${formatViolations(compliance.violations)}</p></div>
+  </div>`;
+}
+
+function formatViolations(violations) {
+  if (!violations || violations.length === 0) return 'Review flagged content before submitting.';
+  // violations may be strings (legacy) or objects with a detail key
+  return violations.map(v => typeof v === 'string' ? v : (v.detail || v.type || JSON.stringify(v))).join(' · ');
+}
+
+function goReview(msg) {
   finishProcessingAnimation();
-  currentTranscript = transcript || '(no speech detected)';
+  currentPipelineResult = msg;
+  currentTranscript = msg.transcript || '(no speech detected)';
 
-  document.getElementById('rev-hcp-label').textContent         = `${currentCall.hcp_name} · ${currentCall.specialty}`;
-  document.getElementById('rev-hcp-name-display').textContent  = currentCall.hcp_name;
-  document.getElementById('rev-product').textContent           = currentCall.product;
-  document.getElementById('rev-transcript').textContent        = currentTranscript;
+  const ext = msg.extraction || {};
+  const compliance = msg.compliance || {};
+
+  document.getElementById('rev-hcp-label').textContent        = `${currentCall.hcp_name} · ${currentCall.specialty}`;
+  document.getElementById('rev-hcp-name-display').textContent = currentCall.hcp_name;
+  document.getElementById('rev-compliance-banner').innerHTML  = buildComplianceBanner(compliance);
+
+  // Account: prefer extracted account, fall back to location, then call data
+  const account = ext.account || ext.location || currentCall.location || '—';
+  document.getElementById('rev-account').textContent          = account;
+  document.getElementById('rev-address').textContent          = ext.address || '—';
+  document.getElementById('rev-datetime').textContent         = ext.call_datetime || '—';
+  document.getElementById('rev-record-type').textContent      = ext.record_type || '—';
+  document.getElementById('rev-engagement-method').textContent = ext.engagement_method || '—';
+  document.getElementById('rev-virtual-tool').textContent     = ext.virtual_engagement_tool || '—';
+
+  // Products: render each as a card with indication as subfield
+  const productsEl = document.getElementById('rev-products');
+  if (ext.products_discussed && ext.products_discussed.length > 0) {
+    productsEl.innerHTML = ext.products_discussed.map(p => `
+      <div class="product-item">
+        <div class="product-name">${esc(p.product || '—')}</div>
+        ${p.indication ? `<div class="product-indication">${esc(p.indication)}</div>` : ''}
+      </div>`).join('');
+  } else {
+    productsEl.innerHTML = `<div class="product-item"><div class="product-name">${esc(currentCall.product || '—')}</div></div>`;
+  }
+  document.getElementById('rev-notes').textContent     = ext.interaction_notes || '—';
+  document.getElementById('rev-transcript').textContent = currentTranscript;
+
+  // Disable submit if compliance HALT (shouldn't reach here, but belt-and-braces)
+  const isHalt = compliance.recommended_action === 'HALT';
+  document.getElementById('approve-btn').disabled = isHalt;
+
+  show('review');
+}
+
+function goReviewHalted(msg) {
+  finishProcessingAnimation();
+  currentPipelineResult = msg;
+  currentTranscript = '';
+
+  document.getElementById('rev-hcp-label').textContent        = `${currentCall.hcp_name} · ${currentCall.specialty}`;
+  document.getElementById('rev-hcp-name-display').textContent = currentCall.hcp_name;
+  document.getElementById('rev-compliance-banner').innerHTML  = buildComplianceBanner(msg.compliance);
+
+  document.getElementById('rev-account').textContent   = '—';
+  document.getElementById('rev-address').textContent   = '—';
+  document.getElementById('rev-datetime').textContent  = '—';
+  document.getElementById('rev-record-type').textContent       = '—';
+  document.getElementById('rev-engagement-method').textContent = '—';
+  document.getElementById('rev-virtual-tool').textContent      = '—';
+  document.getElementById('rev-products').innerHTML    = '';
+  document.getElementById('rev-notes').textContent     = '—';
+  document.getElementById('rev-transcript').textContent = 'Recording withheld — compliance halt';
+
+  document.getElementById('approve-btn').disabled = true;
 
   show('review');
 }
@@ -799,11 +931,17 @@ document.getElementById('approve-btn').addEventListener('click', () => {
     ? `${mins > 0 ? mins + 'm ' : ''}${secs}s`
     : '—';
 
-  document.getElementById('conf-txt').textContent   = `Call report for ${currentCall.hcp_name} has been logged in Veeva CRM`;
-  document.getElementById('conf-hcp').textContent   = currentCall.hcp_name;
-  document.getElementById('conf-product').textContent = currentCall.product;
+  // Derive product display from extraction result, fall back to call data
+  const ext = (currentPipelineResult && currentPipelineResult.extraction) || {};
+  const productDisplay = ext.products_discussed && ext.products_discussed.length > 0
+    ? ext.products_discussed.map(p => p.product).join(', ')
+    : currentCall.product || '—';
+
+  document.getElementById('conf-txt').textContent      = `Call report for ${currentCall.hcp_name} has been logged in Veeva CRM`;
+  document.getElementById('conf-hcp').textContent      = currentCall.hcp_name;
+  document.getElementById('conf-product').textContent  = productDisplay;
   document.getElementById('conf-duration').textContent = durStr;
-  document.getElementById('conf-words').textContent = wordCount + ' words';
+  document.getElementById('conf-words').textContent    = wordCount + ' words';
 
   // Mark call as done in local state
   const call = allCalls.find(c => c.id === currentCall.id);
