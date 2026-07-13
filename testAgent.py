@@ -11,9 +11,9 @@ import requests
 
 
 # ── Config ────────────────────────────────────────────────────────────────
-BASE_URL = "https://gateway.apim-dev.lilly.com"
+BASE_URL = "https://gateway-intranet.apim-dev.lilly.com"
 PARAMS   = {
-    "stream":          "false",
+    "stream":          "true",
     "no_summary":      "false",
     "background_job":  "false",
     "workflow_timeout": "1",
