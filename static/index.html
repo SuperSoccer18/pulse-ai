@@ -6,30 +6,9 @@
 <title>Pulse AI | Lilly</title>
 <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:ital,wght@0,300;0,400;0,600;0,700;1,400&display=swap" rel="stylesheet">
 <style>
-/* ── LILLY DESIGN TOKENS ── */
-:root {
-  --red:      #D31710;
-  --brown:    #501009;
-  --rose:     #F9EEED;
-  --coral:    #FD9485;
-  --gold:     #F4C003;
-  --cream:    #F9F0E0;
-  --green:    #00422C;
-  --sage:     #BEEBE6;
-  --sage-t:   #F0F8F6;
-  --blue:     #003A6C;
-  --azure:    #86B3F2;
-  --gray:     #818C94;
-  --stone:    #D8E4EC;
-  --stone-t:  #F3F7FA;
-  --black:    #191919;
-  --white:    #FFFFFF;
-  --font:     'IBM Plex Sans', Arial, sans-serif;
-}
+:root{--red:#D31710;--brown:#501009;--rose:#F9EEED;--coral:#FD9485;--gold:#F4C003;--cream:#F9F0E0;--green:#00422C;--sage:#BEEBE6;--sage-t:#F0F8F6;--blue:#003A6C;--azure:#86B3F2;--gray:#818C94;--stone:#D8E4EC;--stone-t:#F3F7FA;--black:#191919;--white:#FFFFFF;--font:'IBM Plex Sans',Arial,sans-serif}
 *{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent}
 body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;justify-content:center;align-items:flex-start;padding:28px 16px 40px}
-
-/* ── PHONE SHELL ── */
 .phone{width:393px;height:852px;background:var(--white);border-radius:54px;box-shadow:0 0 0 11px #1C1C1E,0 0 0 13px #3a3a3a,0 48px 96px rgba(0,0,0,0.5);overflow:hidden;display:flex;flex-direction:column;position:relative;flex-shrink:0}
 .island{position:absolute;top:13px;left:50%;transform:translateX(-50%);width:126px;height:37px;background:#000;border-radius:20px;z-index:200}
 .hindicator{height:34px;display:flex;align-items:center;justify-content:center;flex-shrink:0;background:var(--white)}
@@ -41,8 +20,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .scr.visible{transform:translateX(0)}
 .scroll{overflow-y:auto;-webkit-overflow-scrolling:touch}
 .scroll::-webkit-scrollbar{display:none}
-
-/* ── STATUS BAR ── */
 .sbar{height:54px;display:flex;align-items:flex-end;justify-content:space-between;padding:0 24px 8px;flex-shrink:0;position:relative;z-index:5}
 .sbar-time{font-size:15px;font-weight:600;letter-spacing:-0.3px}
 .sbar-icons{display:flex;align-items:center;gap:6px}
@@ -51,8 +28,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .bat{width:23px;height:11px;border:1.5px solid currentColor;border-radius:3px;padding:1.5px;position:relative}
 .bat::after{content:'';position:absolute;right:-5px;top:50%;transform:translateY(-50%);width:2px;height:6px;background:currentColor;border-radius:0 2px 2px 0}
 .bat-fill{width:72%;height:100%;background:currentColor;border-radius:1px}
-
-/* ── HOME SCREEN ── */
 .home-head{background:var(--red);padding:0 20px 18px;flex-shrink:0}
 .home-top{display:flex;justify-content:space-between;align-items:center;margin-bottom:14px}
 .home-brand{display:flex;align-items:center;gap:10px}
@@ -65,7 +40,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .stat{flex:1;background:var(--brown);border-radius:10px;padding:9px 12px}
 .stat-n{font-size:22px;font-weight:700;color:var(--white);line-height:1}
 .stat-l{font-size:10px;color:rgba(255,255,255,0.75);margin-top:2px;font-weight:400}
-
 .home-body{flex:1;padding:16px 16px 16px;background:var(--stone-t);position:relative}
 .sec-label{font-size:11px;font-weight:700;color:var(--gray);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:12px}
 .card{background:var(--white);border-radius:12px;padding:14px 14px 14px 18px;margin-bottom:10px;border:1px solid var(--stone);border-left:4px solid var(--red);display:flex;justify-content:space-between;align-items:flex-start;gap:12px;cursor:pointer;transition:transform 0.1s,box-shadow 0.1s}
@@ -78,12 +52,11 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .tag{display:inline-flex;align-items:center;padding:2px 9px;border-radius:20px;font-size:10px;font-weight:600}
 .tag-red{background:var(--rose);color:var(--red)}
 .tag-green{background:var(--sage-t);color:var(--green);border:1px solid var(--sage)}
+.tag-warn{background:#FFF8E1;color:#7B5800;border:1px solid #FFD54F}
 .btn-primary{background:var(--red);color:var(--white);border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.1s}
 .btn-primary:active{opacity:0.82}
 .fab{position:absolute;bottom:20px;right:18px;background:var(--red);color:var(--white);border:none;border-radius:28px;padding:13px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(211,23,16,0.42);display:flex;align-items:center;gap:8px;font-family:var(--font)}
 .fab:active{opacity:0.85;transform:scale(0.97)}
-
-/* ── RECORDING SCREEN ── */
 .top-bar{background:var(--white);padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--stone);flex-shrink:0}
 .back{background:none;border:none;cursor:pointer;color:var(--red);font-size:28px;line-height:1;padding:0 2px;font-family:var(--font)}
 .back:active{opacity:0.6}
@@ -113,8 +86,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .tip-box{margin:0 16px 16px;background:var(--stone-t);border-radius:10px;padding:11px 15px;border:1px solid var(--stone);flex-shrink:0}
 .tip-box h4{font-size:11px;color:var(--black);font-weight:600;margin-bottom:4px}
 .tip-box p{font-size:11px;color:var(--gray);line-height:1.5;font-weight:400}
-
-/* ── PROCESSING SCREEN ── */
 .proc-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:32px;background:var(--stone-t)}
 .p-logo{width:76px;height:76px;border-radius:16px;background:var(--red);display:flex;align-items:center;justify-content:center;margin-bottom:24px;box-shadow:0 8px 32px rgba(211,23,16,0.35)}
 .p-title{font-size:19px;font-weight:700;color:var(--black);margin-bottom:5px;letter-spacing:-0.3px}
@@ -126,13 +97,14 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .step-circle.idle{background:var(--stone)}
 .step-circle.active{background:var(--red)}
 .step-circle.done{background:var(--green)}
+.step-circle.warn{background:#F57C00}
 .step-dot{width:8px;height:8px;border-radius:50%;background:var(--white)}
 .step-check{font-size:11px;color:var(--white);font-weight:700}
+.step-warn-icon{font-size:11px;color:var(--white);font-weight:700}
 .step-text{font-size:13px;color:var(--black);transition:color 0.3s;font-weight:400}
 .step-text.dim-t{color:var(--gray)}
 .step-text.done-t{color:var(--green);font-weight:600}
-
-/* ── REVIEW SCREEN ── */
+.step-text.warn-t{color:#E65100;font-weight:600}
 .review-head{background:var(--white);padding:13px 20px;border-bottom:1px solid var(--stone);flex-shrink:0}
 .review-head h3{font-size:14px;font-weight:700;color:var(--black)}
 .review-head p{font-size:11px;color:var(--gray);margin-top:1px;font-weight:400}
@@ -141,12 +113,20 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .ok-icon{font-size:18px;line-height:1;color:var(--green)}
 .ok-banner h4{font-size:13px;font-weight:600;color:var(--green)}
 .ok-banner p{font-size:11px;color:var(--green);opacity:0.85;margin-top:1px;font-weight:400}
+.warn-banner{background:#FFF3E0;border-radius:10px;padding:11px 15px;display:flex;align-items:flex-start;gap:11px;margin-bottom:16px;border:1px solid #FFCC80;display:none}
+.warn-banner.visible{display:flex}
+.warn-banner-icon{font-size:18px;line-height:1.2;color:#E65100;flex-shrink:0}
+.warn-banner h4{font-size:13px;font-weight:600;color:#BF360C}
+.warn-banner p{font-size:11px;color:#E65100;margin-top:2px;font-weight:400;line-height:1.4}
 .f{margin-bottom:12px}
 .lbl{font-size:10px;font-weight:700;color:var(--gray);letter-spacing:0.07em;text-transform:uppercase;margin-bottom:4px}
 .val{border-radius:8px;padding:9px 13px;font-size:13px;line-height:1.5;font-weight:400}
 .val-rose{background:var(--rose);color:var(--brown)}
 .val-stone{background:var(--stone-t);color:var(--black);border:1px solid var(--stone)}
 .val-cream{background:var(--cream);color:var(--black)}
+.val-flagged{background:#FFF3E0;color:#BF360C;border:1px solid #FFCC80;outline:2px solid #F57C00}
+[contenteditable="true"]{cursor:text}
+[contenteditable="true"]:focus{outline:1.5px solid var(--red);background:var(--white)}
 .f-row{display:flex;gap:10px}
 .f-row .f{flex:1}
 .stat-mini{flex:1;text-align:center;background:var(--stone-t);border:1px solid var(--stone);border-radius:8px;padding:9px 8px}
@@ -157,8 +137,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .btn-outline:active{opacity:0.75}
 .btn-submit{flex:2;background:var(--red);color:var(--white);border:none;border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);letter-spacing:-0.2px;transition:opacity 0.1s}
 .btn-submit:active{opacity:0.82}
-
-/* ── CONFIRMED SCREEN ── */
 .conf-wrap{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;padding:28px;background:var(--stone-t)}
 .tick-ring{width:76px;height:76px;border-radius:50%;background:var(--sage-t);display:flex;align-items:center;justify-content:center;margin-bottom:20px;border:2.5px solid var(--green)}
 .tick-icon{font-size:32px;color:var(--green);line-height:1}
@@ -176,22 +154,17 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .saved-box small{font-size:11px;color:var(--red);opacity:0.65;font-weight:400}
 .btn-done{background:var(--red);color:var(--white);border:none;border-radius:12px;padding:15px;font-size:15px;font-weight:600;cursor:pointer;width:100%;font-family:var(--font);letter-spacing:-0.2px;transition:opacity 0.1s}
 .btn-done:active{opacity:0.82}
-
-/* ── ERROR BANNER ── */
 .err-banner{background:#FFF3F3;border:1px solid var(--coral);border-radius:10px;padding:10px 14px;margin:12px 16px 0;font-size:12px;color:var(--red);line-height:1.5;display:none}
 .err-banner.visible{display:block}
-
-/* ── LILLY SVG WORDMARK (inline, white) ── */
 .lilly-wm{height:20px;width:auto}
 </style>
 </head>
 <body>
-
 <div class="phone">
   <div class="island"></div>
   <div class="screens" id="screens">
 
-    <!-- ① HOME -->
+    <!-- HOME -->
     <div class="scr visible" id="s-home">
       <div class="home-head">
         <div class="sbar" style="color:#fff">
@@ -215,29 +188,20 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
           <div class="avatar">M</div>
         </div>
         <div class="home-brand" style="margin-top:14px;padding-top:14px;border-top:1px solid rgba(255,255,255,0.2)">
-          <!-- Lilly wordmark SVG (white) -->
-          <svg class="lilly-wm" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Lilly">
-            <text x="0" y="28" font-family="IBM Plex Sans, Arial, sans-serif" font-weight="700" font-size="32" fill="white">Lilly</text>
-          </svg>
+          <svg class="lilly-wm" viewBox="0 0 120 36" fill="none" xmlns="http://www.w3.org/2000/svg" aria-label="Lilly"><text x="0" y="28" font-family="IBM Plex Sans, Arial, sans-serif" font-weight="700" font-size="32" fill="white">Lilly</text></svg>
           <div class="app-divider"></div>
           <div class="app-name">Pulse AI</div>
         </div>
       </div>
       <div class="home-body scroll" style="flex:1">
         <div class="sec-label">Today's planned calls</div>
-        <div id="call-list">
-          <!-- populated by fetchCalls() -->
-          <div style="text-align:center;padding:32px;color:var(--gray);font-size:13px">Loading calls…</div>
-        </div>
+        <div id="call-list"><div style="text-align:center;padding:32px;color:var(--gray);font-size:13px">Loading calls…</div></div>
         <div style="height:80px"></div>
-        <button class="fab">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><line x1="6.5" y1="1" x2="6.5" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="6.5" x2="12" y2="6.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-          New call
-        </button>
+        <button class="fab"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><line x1="6.5" y1="1" x2="6.5" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="6.5" x2="12" y2="6.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>New call</button>
       </div>
     </div>
 
-    <!-- ② RECORDING -->
+    <!-- RECORDING -->
     <div class="scr out-right" id="s-recording" style="background:var(--white)">
       <div class="sbar" style="color:var(--black);background:var(--white)">
         <span class="sbar-time" style="color:var(--black)" id="clock-rec">9:41</span>
@@ -248,10 +212,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
       </div>
       <div class="top-bar">
         <button class="back" id="back-btn">‹</button>
-        <div>
-          <div class="top-bar-title">Recording call</div>
-          <div class="top-bar-sub" id="rec-hcp-label">Dr. Sarah Patel</div>
-        </div>
+        <div><div class="top-bar-title">Recording call</div><div class="top-bar-sub" id="rec-hcp-label">Dr. Sarah Patel</div></div>
       </div>
       <div class="hcp-pill">
         <div class="hcp-pill-name" id="rec-hcp-name">Dr. Sarah Patel</div>
@@ -262,12 +223,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
           <div class="ring ring1" id="ring1"></div>
           <div class="ring ring2" id="ring2"></div>
           <button class="rec-btn" id="rec-btn">
-            <!-- Mic icon (shown before recording starts) -->
-            <svg class="icon-mic" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="9" y="2" width="6" height="11" rx="3"/>
-              <path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/>
-            </svg>
-            <!-- Stop square (shown while recording) -->
+            <svg class="icon-mic" width="30" height="30" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="9" y="2" width="6" height="11" rx="3"/><path d="M5 10a7 7 0 0 0 14 0"/><line x1="12" y1="17" x2="12" y2="21"/><line x1="9" y1="21" x2="15" y2="21"/></svg>
             <div class="icon-stop rec-sq"></div>
           </button>
         </div>
@@ -285,7 +241,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
       </div>
     </div>
 
-    <!-- ③ PROCESSING -->
+    <!-- PROCESSING -->
     <div class="scr out-right" id="s-processing">
       <div class="sbar" style="color:var(--black);background:var(--stone-t)">
         <span class="sbar-time" style="color:var(--black)">9:41</span>
@@ -295,11 +251,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
         </div>
       </div>
       <div class="proc-wrap">
-        <div class="p-logo">
-          <svg width="36" height="36" viewBox="0 0 36 36" fill="none">
-            <text x="18" y="26" text-anchor="middle" font-family="IBM Plex Sans, Arial" font-weight="700" font-size="24" fill="white">P</text>
-          </svg>
-        </div>
+        <div class="p-logo"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><text x="18" y="26" text-anchor="middle" font-family="IBM Plex Sans, Arial" font-weight="700" font-size="24" fill="white">P</text></svg></div>
         <div class="p-title">Pulse AI processing</div>
         <div class="p-sub" id="proc-sub">Transcribing your recording…</div>
         <div class="p-steps">
@@ -311,7 +263,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
       </div>
     </div>
 
-    <!-- ④ REVIEW -->
+    <!-- REVIEW -->
     <div class="scr out-right" id="s-review">
       <div class="sbar" style="color:var(--black);background:var(--white)">
         <span class="sbar-time" style="color:var(--black)">9:41</span>
@@ -325,112 +277,72 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
         <p id="rev-hcp-label">Dr. Sarah Patel · Endocrinology</p>
       </div>
       <div class="review-body scroll" style="flex:1">
-        <div class="ok-banner">
+        <div class="warn-banner" id="compliance-warn-banner">
+          <div class="warn-banner-icon">⚠</div>
+          <div><h4>Compliance issues detected</h4><p id="compliance-warn-text">PI or AECP content found. Flagged fields are highlighted below — please review and edit before resubmitting.</p></div>
+        </div>
+        <div class="ok-banner" id="compliance-ok-banner">
           <div class="ok-icon">✓</div>
           <div><h4>Transcription complete</h4><p>Review the transcript below before submitting</p></div>
         </div>
-        <div class="f">
-          <div class="lbl">HCP</div>
-          <div class="val val-rose" id="rev-hcp-name-display">Dr. Sarah Patel</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Product discussed</div>
-          <div class="val val-stone" id="rev-product">Mounjaro</div>
-        </div>
-
+        <div class="f"><div class="lbl">HCP</div><div class="val val-rose" id="rev-hcp-name-display">Dr. Sarah Patel</div></div>
+        <div class="f"><div class="lbl">Product discussed</div><div class="val val-stone" id="rev-product">Mounjaro</div></div>
         <div class="lbl" style="margin:16px 0 8px">Veeva CRM fields</div>
-
-        <div class="f">
-          <div class="lbl">Account</div>
-          <div class="val val-stone" contenteditable="true" id="rev-account">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Location</div>
-          <div class="val val-stone" contenteditable="true" id="rev-location">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Address</div>
-          <div class="val val-stone" contenteditable="true" id="rev-address">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Call DateTime</div>
-          <div class="val val-stone" contenteditable="true" id="rev-call-datetime">—</div>
-        </div>
+        <div class="f"><div class="lbl">Account</div><div class="val val-stone" contenteditable="true" data-key="account" id="rev-account">—</div></div>
+        <div class="f"><div class="lbl">Location</div><div class="val val-stone" contenteditable="true" data-key="location" id="rev-location">—</div></div>
+        <div class="f"><div class="lbl">Address</div><div class="val val-stone" contenteditable="true" data-key="address" id="rev-address">—</div></div>
+        <div class="f"><div class="lbl">Call DateTime</div><div class="val val-stone" contenteditable="true" data-key="call_datetime" id="rev-call-datetime">—</div></div>
         <div class="f-row">
-          <div class="f">
-            <div class="lbl">Record type</div>
-            <div class="val val-stone" id="rev-record-type">Interaction</div>
-          </div>
-          <div class="f">
-            <div class="lbl">Engagement method</div>
-            <div class="val val-stone" contenteditable="true" id="rev-engagement-method">In-office</div>
-          </div>
+          <div class="f"><div class="lbl">Record type</div><div class="val val-stone" id="rev-record-type">Interaction</div></div>
+          <div class="f"><div class="lbl">Engagement method</div><div class="val val-stone" id="rev-engagement-method">In-office</div></div>
         </div>
-        <div class="f">
-          <div class="lbl">Virtual engagement tool</div>
-          <div class="val val-stone" id="rev-virtual-tool">N/A</div>
-        </div>
-
-        <div class="f">
-          <div class="lbl">Call transcript</div>
-          <div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:220px;overflow-y:auto">—</div>
-        </div>
-
+        <div class="f"><div class="lbl">Virtual engagement tool</div><div class="val val-stone" id="rev-virtual-tool">N/A</div></div>
+        <div class="f"><div class="lbl">Call transcript</div><div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:220px;overflow-y:auto">—</div></div>
         <div class="lbl" style="margin:16px 0 8px">Extraction quality</div>
         <div class="f-row">
-          <div class="stat-mini">
-            <div class="lbl">Fields extracted</div>
-            <div class="n" id="rev-fields-extracted" style="color:var(--green)">—</div>
-          </div>
-          <div class="stat-mini">
-            <div class="lbl">Fields null</div>
-            <div class="n" id="rev-fields-null" style="color:var(--red)">—</div>
-          </div>
+          <div class="stat-mini"><div class="lbl">Fields extracted</div><div class="n" id="rev-fields-extracted" style="color:var(--green)">—</div></div>
+          <div class="stat-mini"><div class="lbl">Fields null</div><div class="n" id="rev-fields-null" style="color:var(--red)">—</div></div>
         </div>
-        <div class="f" style="margin-top:12px">
-          <div class="lbl">Recommended action</div>
-          <span class="tag tag-red" id="rev-recommended-action" style="font-size:11px">—</span>
-        </div>
-
+        <div class="f" style="margin-top:12px"><div class="lbl">Recommended action</div><span class="tag tag-red" id="rev-recommended-action" style="font-size:11px">—</span></div>
         <div class="lbl" style="margin:16px 0 8px">Call summary</div>
-        <div class="f">
-          <div class="lbl">Call overview</div>
-          <div class="val val-stone" id="rev-call-overview">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Products discussed</div>
-          <div class="val val-stone" id="rev-summary-products">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Key topics</div>
-          <div class="val val-stone" id="rev-key-topics">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">HCP response</div>
-          <div class="val val-stone" id="rev-hcp-response">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Objections raised</div>
-          <div class="val val-stone" id="rev-objections">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Next steps</div>
-          <div class="val val-stone" id="rev-next-steps">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Rep recommendations</div>
-          <div class="val val-stone" id="rev-rep-recommendations">—</div>
-        </div>
-
+        <div class="f"><div class="lbl">Call overview</div><div class="val val-stone" contenteditable="true" data-key="call_overview" data-target="summary" id="rev-call-overview">—</div></div>
+        <div class="f"><div class="lbl">Products discussed</div><div class="val val-stone" contenteditable="true" data-key="products_discussed" data-target="summary" id="rev-summary-products">—</div></div>
+        <div class="f"><div class="lbl">Key topics</div><div class="val val-stone" contenteditable="true" data-key="key_topics" data-target="summary" id="rev-key-topics">—</div></div>
+        <div class="f"><div class="lbl">HCP response</div><div class="val val-stone" contenteditable="true" data-key="hcp_response" data-target="summary" id="rev-hcp-response">—</div></div>
+        <div class="f"><div class="lbl">Objections raised</div><div class="val val-stone" contenteditable="true" data-key="objections_raised" data-target="summary" id="rev-objections">—</div></div>
+        <div class="f"><div class="lbl">Next steps</div><div class="val val-stone" contenteditable="true" data-key="next_steps" data-target="summary" id="rev-next-steps">—</div></div>
+        <div class="f"><div class="lbl">Rep recommendations</div><div class="val val-stone" contenteditable="true" data-key="rep_recommendations" data-target="summary" id="rev-rep-recommendations">—</div></div>
         <div style="height:16px"></div>
       </div>
       <div class="review-foot">
         <button class="btn-outline" id="edit-btn">Edit</button>
-        <button class="btn-submit" id="approve-btn">Approve &amp; submit</button>
+        <button class="btn-submit" id="approve-btn">Approve and review</button>
       </div>
     </div>
 
-    <!-- ⑤ CONFIRMED -->
+    <!-- COMPLIANCE CHECK -->
+    <div class="scr out-right" id="s-compliance">
+      <div class="sbar" style="color:var(--black);background:var(--stone-t)">
+        <span class="sbar-time" style="color:var(--black)">9:41</span>
+        <div class="sbar-icons" style="color:var(--black)">
+          <div class="sig"><span style="height:4px;background:var(--black)"></span><span style="height:7px;background:var(--black)"></span><span style="height:10px;background:var(--black)"></span><span style="height:12px;background:var(--stone)"></span></div>
+          <div class="bat"><div class="bat-fill"></div></div>
+        </div>
+      </div>
+      <div class="proc-wrap">
+        <div class="p-logo"><svg width="36" height="36" viewBox="0 0 36 36" fill="none"><text x="18" y="26" text-anchor="middle" font-family="IBM Plex Sans, Arial" font-weight="700" font-size="24" fill="white">P</text></svg></div>
+        <div class="p-title">Compliance check</div>
+        <div class="p-sub" id="comp-sub">Analyzing transcript for PI and AECP…</div>
+        <div class="p-steps">
+          <div class="step dim" id="cs0"><div class="step-circle idle" id="ci0"></div><div class="step-text dim-t">Scanning for PI violations…</div></div>
+          <div class="step dim" id="cs1"><div class="step-circle idle" id="ci1"></div><div class="step-text dim-t">Checking AECP adverse events…</div></div>
+          <div class="step dim" id="cs2"><div class="step-circle idle" id="ci2"></div><div class="step-text dim-t">Verifying CRM fields…</div></div>
+          <div class="step dim" id="cs3"><div class="step-circle idle" id="ci3"></div><div class="step-text dim-t">Generating compliance report…</div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- CONFIRMED -->
     <div class="scr out-right" id="s-confirmed">
       <div class="sbar" style="color:var(--black);background:var(--stone-t)">
         <span class="sbar-time" style="color:var(--black)">9:41</span>
@@ -449,6 +361,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
           <div class="sum-row"><span class="sum-k">Product</span><span class="sum-v" id="conf-product">—</span></div>
           <div class="sum-row"><span class="sum-k">Recording length</span><span class="sum-v" id="conf-duration">—</span></div>
           <div class="sum-row"><span class="sum-k">Transcript words</span><span class="sum-v" id="conf-words">—</span></div>
+          <div class="sum-row"><span class="sum-k">Compliance</span><span class="sum-v" id="conf-compliance" style="color:var(--green)">CLEAN</span></div>
         </div>
         <div class="saved-box">
           <h4>Time saved vs manual entry</h4>
@@ -459,538 +372,386 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
       </div>
     </div>
 
-  </div><!-- /screens -->
+  </div>
   <div class="hindicator"><div class="hbar"></div></div>
 </div>
 
 <script>
-// ─────────────────────────────────────────────────────────────────────────────
-// Screen navigation
-// ─────────────────────────────────────────────────────────────────────────────
-const ORDER = ['home','recording','processing','review','confirmed'];
-let navHistory = [];
+const ORDER=['home','recording','processing','review','compliance','confirmed'];
+let navHistory=[];
 
-function show(id) {
-  const prevEl = document.querySelector('.scr.visible');
-  if (prevEl) {
-    const prevId = prevEl.id.replace('s-', '');
-    const forward = ORDER.indexOf(id) > ORDER.indexOf(prevId);
+function show(id){
+  const prevEl=document.querySelector('.scr.visible');
+  if(prevEl){
+    const prevId=prevEl.id.replace('s-','');
+    const forward=ORDER.indexOf(id)>ORDER.indexOf(prevId);
     prevEl.classList.remove('visible');
-    prevEl.classList.add(forward ? 'out-left' : 'out-right');
+    prevEl.classList.add(forward?'out-left':'out-right');
     navHistory.push(prevId);
   }
-  const next = document.getElementById('s-' + id);
-  next.classList.remove('out-left', 'out-right');
+  const next=document.getElementById('s-'+id);
+  next.classList.remove('out-left','out-right');
   next.classList.add('visible');
 }
 
-function goBack() {
+function goBack(){
   abortRecording();
-  const prev = navHistory.pop() || 'home';
-  const cur = document.querySelector('.scr.visible');
-  cur.classList.remove('visible');
-  cur.classList.add('out-right');
-  const prevEl = document.getElementById('s-' + prev);
-  prevEl.classList.remove('out-left', 'out-right');
-  prevEl.classList.add('visible');
+  const prev=navHistory.pop()||'home';
+  const cur=document.querySelector('.scr.visible');
+  cur.classList.remove('visible');cur.classList.add('out-right');
+  const prevEl=document.getElementById('s-'+prev);
+  prevEl.classList.remove('out-left','out-right');prevEl.classList.add('visible');
 }
 
-function goHome() {
-  navHistory = [];
-  const cur = document.querySelector('.scr.visible');
-  cur.classList.remove('visible');
-  cur.classList.add('out-right');
-  const home = document.getElementById('s-home');
-  home.classList.remove('out-left', 'out-right');
-  home.classList.add('visible');
-  fetchCalls();    // refresh stats
+function goHome(){
+  navHistory=[];
+  const cur=document.querySelector('.scr.visible');
+  cur.classList.remove('visible');cur.classList.add('out-right');
+  const home=document.getElementById('s-home');
+  home.classList.remove('out-left','out-right');home.classList.add('visible');
+  fetchCalls();
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Clock
-// ─────────────────────────────────────────────────────────────────────────────
-function updateClocks() {
-  const now  = new Date();
-  const hh   = now.getHours().toString().padStart(2, '0');
-  const mm   = now.getMinutes().toString().padStart(2, '0');
-  const t    = `${hh}:${mm}`;
-  document.getElementById('clock-home').textContent = t;
-  document.getElementById('clock-rec').textContent  = t;
+function updateClocks(){
+  const now=new Date();
+  const t=`${now.getHours().toString().padStart(2,'0')}:${now.getMinutes().toString().padStart(2,'0')}`;
+  document.getElementById('clock-home').textContent=t;
+  document.getElementById('clock-rec').textContent=t;
 }
-updateClocks();
-setInterval(updateClocks, 30000);
+updateClocks();setInterval(updateClocks,30000);
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Date greeting
-// ─────────────────────────────────────────────────────────────────────────────
-(function() {
-  const days   = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
-  const months = ['January','February','March','April','May','June','July','August','September','October','November','December'];
-  const now    = new Date();
-  document.getElementById('home-date').textContent =
-    `${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
+(function(){
+  const days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  const months=['January','February','March','April','May','June','July','August','September','October','November','December'];
+  const now=new Date();
+  document.getElementById('home-date').textContent=`${days[now.getDay()]}, ${months[now.getMonth()]} ${now.getDate()}`;
 })();
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Call list — fetched from /api/calls
-// ─────────────────────────────────────────────────────────────────────────────
-let allCalls = [];
+let allCalls=[];
 
-async function fetchCalls() {
-  try {
-    const res  = await fetch('/api/calls');
-    allCalls   = await res.json();
-    renderCallList(allCalls);
-  } catch (e) {
-    document.getElementById('call-list').innerHTML =
-      `<div style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load calls.</div>`;
-  }
+async function fetchCalls(){
+  try{const res=await fetch('/api/calls');allCalls=await res.json();renderCallList(allCalls);}
+  catch(e){document.getElementById('call-list').innerHTML=`<div style="text-align:center;padding:32px;color:var(--red);font-size:13px">Failed to load calls.</div>`;}
 }
 
-function renderCallList(calls) {
-  const total   = calls.length;
-  const done    = calls.filter(c => c.status === 'done').length;
-  const pending = total - done;
-  document.getElementById('stat-total').textContent   = total;
-  document.getElementById('stat-done').textContent    = done;
-  document.getElementById('stat-pending').textContent = pending;
-
-  const list = document.getElementById('call-list');
-  list.innerHTML = calls.map(c => {
-    const isDone = c.status === 'done';
-    const startBtn = isDone ? '' :
-      `<button class="btn-primary" onclick="event.stopPropagation();openCall('${c.id}')">Start</button>`;
-    const doneTag = isDone ? `<span class="tag tag-green" style="font-size:9px">Done</span>` : '';
-    return `
-      <div class="card${isDone ? ' done' : ''}" ${isDone ? '' : `onclick="openCall('${c.id}')"`}>
-        <div>
-          <div class="card-name">${esc(c.hcp_name)} ${doneTag}</div>
-          <div class="card-spec">${esc(c.specialty)}</div>
-          <div class="card-loc">${esc(c.location)}</div>
-        </div>
-        <div class="card-right">
-          <div class="tag tag-red">${esc(c.product)}</div>
-          ${startBtn}
-        </div>
-      </div>`;
+function renderCallList(calls){
+  const total=calls.length,done=calls.filter(c=>c.status==='done').length,pending=total-done;
+  document.getElementById('stat-total').textContent=total;
+  document.getElementById('stat-done').textContent=done;
+  document.getElementById('stat-pending').textContent=pending;
+  const list=document.getElementById('call-list');
+  list.innerHTML=calls.map(c=>{
+    const isDone=c.status==='done';
+    const startBtn=isDone?'':`<button class="btn-primary" onclick="event.stopPropagation();openCall('${c.id}')">Start</button>`;
+    const doneTag=isDone?`<span class="tag tag-green" style="font-size:9px">Done</span>`:'';
+    return `<div class="card${isDone?' done':''}" ${isDone?'':`onclick="openCall('${c.id}')"`}>
+      <div><div class="card-name">${esc(c.hcp_name)} ${doneTag}</div><div class="card-spec">${esc(c.specialty)}</div><div class="card-loc">${esc(c.location)}</div></div>
+      <div class="card-right"><div class="tag tag-red">${esc(c.product)}</div>${startBtn}</div></div>`;
   }).join('');
 }
 
-function esc(s) {
-  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
-}
+function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Open a call → recording screen
-// ─────────────────────────────────────────────────────────────────────────────
-let currentCall = {};
-let recTimerInt = null;
-let recSecs     = 0;
+let currentCall={},recTimerInt=null,recSecs=0;
 
-function openCall(callId) {
-  const call = allCalls.find(c => c.id === callId);
-  if (!call) return;
-  currentCall = call;
-
-  document.getElementById('rec-hcp-label').textContent  = call.hcp_name;
-  document.getElementById('rec-hcp-name').textContent   = call.hcp_name;
-  document.getElementById('rec-hcp-detail').textContent = `${call.specialty} · ${call.product}`;
-
-  // Reset recording UI
-  recSecs = 0;
-  document.getElementById('timer').textContent = '00:00';
-  document.getElementById('rec-hint').textContent = 'Tap to start recording';
+function openCall(callId){
+  const call=allCalls.find(c=>c.id===callId);if(!call) return;
+  currentCall=call;
+  document.getElementById('rec-hcp-label').textContent=call.hcp_name;
+  document.getElementById('rec-hcp-name').textContent=call.hcp_name;
+  document.getElementById('rec-hcp-detail').textContent=`${call.specialty} · ${call.product}`;
+  recSecs=0;document.getElementById('timer').textContent='00:00';
+  document.getElementById('rec-hint').textContent='Tap to start recording';
   document.getElementById('rec-btn').classList.remove('recording');
   document.getElementById('ring1').classList.remove('pulsing');
   document.getElementById('ring2').classList.remove('pulsing');
   document.getElementById('rec-error').classList.remove('visible');
-  document.getElementById('rec-error').textContent = '';
-  clearInterval(recTimerInt);
-
-  show('recording');
+  document.getElementById('rec-error').textContent='';
+  clearInterval(recTimerInt);show('recording');
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Recording — AudioWorklet + WebSocket streaming pipeline
-// ─────────────────────────────────────────────────────────────────────────────
-let audioCtx         = null;
-let workletNode      = null;
-let micStream        = null;
-let ws               = null;
-let isRecording      = false;
-let transcriptReady  = false;   // set true once server sends transcript; guards onclose
+let audioCtx=null,workletNode=null,micStream=null,ws=null,isRecording=false,transcriptReady=false;
+document.getElementById('rec-btn').addEventListener('click',()=>{isRecording?stopRecording():startRecording();});
 
-document.getElementById('rec-btn').addEventListener('click', () => {
-  if (!isRecording) {
-    startRecording();
-  } else {
-    stopRecording();
-  }
-});
-
-async function startRecording() {
-  const errBanner = document.getElementById('rec-error');
-  errBanner.classList.remove('visible');
-  errBanner.textContent = '';
-  transcriptReady = false;
-
-  try {
-    micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-  } catch (e) {
-    showRecError('Microphone access denied. Please allow microphone permission and try again.');
-    return;
-  }
-
-  // Create AudioContext; note: sampleRate varies by device (usually 48000)
-  audioCtx = new AudioContext();
-  const actualRate = audioCtx.sampleRate;
-
-  // Open WebSocket before loading worklet so it's ready immediately
-  const wsProto = location.protocol === 'https:' ? 'wss' : 'ws';
-  ws = new WebSocket(`${wsProto}://${location.host}/ws/transcribe`);
-  ws.binaryType = 'arraybuffer';
-
-  await new Promise((resolve, reject) => {
-    ws.onopen    = resolve;
-    ws.onerror   = () => reject(new Error('WebSocket connection failed'));
-    ws.onclose   = (e) => { if (!e.wasClean) reject(new Error('WebSocket closed unexpectedly')); };
-  }).catch(e => { showRecError(e.message); teardownAudio(); throw e; });
-
-  // Send sample rate so server resamples correctly
-  ws.send(JSON.stringify({ sampleRate: actualRate }));
-
-  // Handle messages from server
-  ws.onmessage = handleWsMessage;
-  ws.onerror   = () => showRecError('Server connection error.');
-  ws.onclose   = (e) => {
-    if (!e.wasClean && !transcriptReady) {
-      const onProcessing = document.getElementById('s-processing').classList.contains('visible');
-      if (onProcessing) {
-        show('recording');
-        showRecError('Server connection lost during processing. Please try again.');
-      } else if (isRecording) {
-        showRecError('Server disconnected.');
-      }
+async function startRecording(){
+  const errBanner=document.getElementById('rec-error');
+  errBanner.classList.remove('visible');errBanner.textContent='';transcriptReady=false;
+  try{micStream=await navigator.mediaDevices.getUserMedia({audio:true,video:false});}
+  catch(e){showRecError('Microphone access denied. Please allow microphone permission and try again.');return;}
+  audioCtx=new AudioContext();const actualRate=audioCtx.sampleRate;
+  const wsProto=location.protocol==='https:'?'wss':'ws';
+  ws=new WebSocket(`${wsProto}://${location.host}/ws/transcribe`);ws.binaryType='arraybuffer';
+  await new Promise((resolve,reject)=>{
+    ws.onopen=resolve;
+    ws.onerror=()=>reject(new Error('WebSocket connection failed'));
+    ws.onclose=(e)=>{if(!e.wasClean)reject(new Error('WebSocket closed unexpectedly'));};
+  }).catch(e=>{showRecError(e.message);teardownAudio();throw e;});
+  ws.send(JSON.stringify({sampleRate:actualRate}));
+  ws.onmessage=handleWsMessage;
+  ws.onerror=()=>showRecError('Server connection error.');
+  ws.onclose=(e)=>{
+    if(!e.wasClean&&!transcriptReady){
+      const onProcessing=document.getElementById('s-processing').classList.contains('visible');
+      if(onProcessing){show('recording');showRecError('Server connection lost. Please try again.');}
+      else if(isRecording){showRecError('Server disconnected.');}
     }
   };
-
-  // Load AudioWorklet
-  try {
-    await audioCtx.audioWorklet.addModule('/static/recorder-worklet.js');
-  } catch (e) {
-    showRecError('Failed to load audio worklet: ' + e.message);
-    teardownAudio();
-    return;
-  }
-
-  const source = audioCtx.createMediaStreamSource(micStream);
-  workletNode  = new AudioWorkletNode(audioCtx, 'pulse-recorder');
-
-  workletNode.port.onmessage = (e) => {
-    const { type, buffer } = e.data;
-    if (type === 'pcm' && ws && ws.readyState === WebSocket.OPEN) {
-      ws.send(buffer);    // raw float32 binary frame
-    }
-    // 'done' message: worklet has flushed — we've already sent 'stop' via ws
-  };
-
-  source.connect(workletNode);
-  workletNode.connect(audioCtx.destination);   // required for worklet to process
-
-  isRecording = true;
+  try{await audioCtx.audioWorklet.addModule('/static/recorder-worklet.js');}
+  catch(e){showRecError('Failed to load audio worklet: '+e.message);teardownAudio();return;}
+  const source=audioCtx.createMediaStreamSource(micStream);
+  workletNode=new AudioWorkletNode(audioCtx,'pulse-recorder');
+  workletNode.port.onmessage=(e)=>{const{type,buffer}=e.data;if(type==='pcm'&&ws&&ws.readyState===WebSocket.OPEN){ws.send(buffer);}};
+  source.connect(workletNode);workletNode.connect(audioCtx.destination);
+  isRecording=true;
   document.getElementById('rec-btn').classList.add('recording');
   document.getElementById('ring1').classList.add('pulsing');
   document.getElementById('ring2').classList.add('pulsing');
-  document.getElementById('rec-hint').textContent = 'Tap to stop';
-
-  recSecs = 0;
-  clearInterval(recTimerInt);
-  recTimerInt = setInterval(() => {
+  document.getElementById('rec-hint').textContent='Tap to stop';
+  recSecs=0;clearInterval(recTimerInt);
+  recTimerInt=setInterval(()=>{
     recSecs++;
-    const m = Math.floor(recSecs / 60).toString().padStart(2, '0');
-    const s = (recSecs % 60).toString().padStart(2, '0');
-    document.getElementById('timer').textContent = `${m}:${s}`;
-  }, 1000);
+    const m=Math.floor(recSecs/60).toString().padStart(2,'0');
+    const s=(recSecs%60).toString().padStart(2,'0');
+    document.getElementById('timer').textContent=`${m}:${s}`;
+  },1000);
 }
 
-function stopRecording() {
-  if (!isRecording) return;
-  isRecording = false;
-  clearInterval(recTimerInt);
-
-  // Signal worklet to flush remaining PCM, then tell server we're done
-  if (workletNode) {
-    workletNode.port.postMessage('stop');
-    // Give worklet a tick to flush before sending 'stop' to server
-    setTimeout(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
-    }, 80);
-  } else {
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
-  }
-
-  // Transition to processing screen immediately; transcript arrives async
-  show('processing');
-  runProcessingAnimation();
-
-  // Stop mic tracks (raw audio is gone)
-  if (micStream) micStream.getTracks().forEach(t => t.stop());
+function stopRecording(){
+  if(!isRecording) return;isRecording=false;clearInterval(recTimerInt);
+  if(workletNode){workletNode.port.postMessage('stop');setTimeout(()=>{if(ws&&ws.readyState===WebSocket.OPEN)ws.send('stop');},80);}
+  else{if(ws&&ws.readyState===WebSocket.OPEN)ws.send('stop');}
+  show('processing');runProcessingAnimation();
+  if(micStream) micStream.getTracks().forEach(t=>t.stop());
 }
 
-function abortRecording() {
-  if (!isRecording) return;
-  isRecording = false;
-  clearInterval(recTimerInt);
-  if (workletNode) workletNode.port.postMessage('stop');
-  if (ws) ws.close();
-  teardownAudio();
+function abortRecording(){
+  if(!isRecording) return;isRecording=false;clearInterval(recTimerInt);
+  if(workletNode) workletNode.port.postMessage('stop');
+  if(ws) ws.close();teardownAudio();
 }
 
-function teardownAudio() {
-  if (micStream) { micStream.getTracks().forEach(t => t.stop()); micStream = null; }
-  if (workletNode) { workletNode.disconnect(); workletNode = null; }
-  if (audioCtx)  { audioCtx.close(); audioCtx = null; }
+function teardownAudio(){
+  if(micStream){micStream.getTracks().forEach(t=>t.stop());micStream=null;}
+  if(workletNode){workletNode.disconnect();workletNode=null;}
+  if(audioCtx){audioCtx.close();audioCtx=null;}
 }
 
-function showRecError(msg) {
-  const b = document.getElementById('rec-error');
-  b.textContent = msg;
-  b.classList.add('visible');
+function showRecError(msg){const b=document.getElementById('rec-error');b.textContent=msg;b.classList.add('visible');}
+
+let chunksEncoded=0;
+
+function handleWsMessage(event){
+  const msg=JSON.parse(event.data);
+  if(msg.type==='chunk_encoded'){chunksEncoded=msg.index;const pt0=document.getElementById('pt0');if(pt0) pt0.textContent=`Encoding audio chunks… (${chunksEncoded} encoded)`;}
+  if(msg.type==='decoding'){clearInterval(procAnimInt);while(procStep<=1) advanceProcStep();document.getElementById('proc-sub').textContent='Decoding transcript…';}
+  if(msg.type==='transcript'){transcriptReady=true;teardownAudio();goReview(msg.text,null);}
+  if(msg.type==='status'){const sub=document.getElementById('proc-sub');if(sub) sub.textContent=msg.message;}
+  if(msg.type==='fields') applyFields(msg.data);
+  if(msg.type==='summary') applySummary(msg.data);
+  if(msg.type==='compliance') storeComplianceResult(msg.data);
+  if(msg.type==='error'){teardownAudio();show('recording');showRecError('Transcription error: '+msg.message);}
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// WebSocket message handler
-// ─────────────────────────────────────────────────────────────────────────────
-let chunksEncoded = 0;
+let procAnimInt=null,procStep=0;
 
-function handleWsMessage(event) {
-  const msg = JSON.parse(event.data);
-
-  if (msg.type === 'chunk_encoded') {
-    chunksEncoded = msg.index;
-    // Advance processing step 0 label to show live progress
-    const pt0 = document.getElementById('pt0');
-    if (pt0) pt0.textContent = `Encoding audio chunks… (${chunksEncoded} encoded)`;
-  }
-
-  if (msg.type === 'decoding') {
-    // All chunks encoded — advance animation to the decode step
-    clearInterval(procAnimInt);
-    // Make sure step 0 is marked done and step 1 is active
-    while (procStep <= 1) advanceProcStep();
-    document.getElementById('proc-sub').textContent = 'Decoding transcript…';
-  }
-
-  if (msg.type === 'transcript') {
-    // Transcript arrives first, before the Cortex pipeline has run.
-    // Show the review screen right away with placeholder CRM fields;
-    // they'll be filled in a moment later when 'fields' arrives.
-    transcriptReady = true;   // guard onclose before any async delay
-    teardownAudio();
-    goReview(msg.text, null);
-  }
-
-  if (msg.type === 'status') {
-    // server.py sends {"type":"status","message":"Running compliance analysis..."}
-    // right before kicking off the Cortex pipeline in the background thread.
-    const sub = document.getElementById('proc-sub');
-    if (sub) sub.textContent = msg.message;
-  }
-
-  if (msg.type === 'compliance') {
-    // pipeline_result["compliance"] from server.py — status badge, violations, etc.
-    // Not yet wired to a UI element on this screen; hook in here if/when needed.
-  }
-
-  if (msg.type === 'fields') {
-    // pipeline_result["fields"] from fieldExtraction.py, sent as {"type":"fields","data":{...}}
-    // Populate the Veeva CRM section once extraction completes.
-    applyFields(msg.data);
-  }
-
-  if (msg.type === 'summary') {
-    // pipeline_result["summary"] from summaryField.py, sent as {"type":"summary","data":{...}}
-    applySummary(msg.data);
-  }
-
-  if (msg.type === 'error') {
-    teardownAudio();
-    // Go back to recording screen and show error
-    show('recording');
-    showRecError('Transcription error: ' + msg.message);
-  }
+function runProcessingAnimation(){
+  for(let i=0;i<4;i++){const ps=document.getElementById('ps'+i);const pi=document.getElementById('pi'+i);ps.classList.add('dim');pi.className='step-circle idle';pi.innerHTML='';ps.querySelector('.step-text').className='step-text dim-t';}
+  chunksEncoded=0;procStep=0;advanceProcStep();
+  procAnimInt=setInterval(()=>{if(procStep<2)advanceProcStep();},1800);
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Processing animation (runs while transcript is being generated server-side)
-// ─────────────────────────────────────────────────────────────────────────────
-const PROC_STEPS = [
-  'Encoding audio chunks…',
-  'Decoding transcript…',
-  'Extracting structured data…',
-  'Finalizing summary…',
-];
-let procAnimInt = null;
-let procStep    = 0;
-
-function runProcessingAnimation() {
-  // Reset all steps
-  for (let i = 0; i < 4; i++) {
-    const ps = document.getElementById('ps' + i);
-    const pi = document.getElementById('pi' + i);
-    ps.classList.add('dim');
-    pi.className = 'step-circle idle';
-    pi.innerHTML = '';
-    ps.querySelector('.step-text').className = 'step-text dim-t';
-  }
-  chunksEncoded = 0;
-  procStep = 0;
-
-  // Advance first step immediately
-  advanceProcStep();
-
-  // Steps 1-2 advance on a timer as placeholders;
-  // step 1 advances once server confirms encoding is happening,
-  // and the final step is held until transcript arrives.
-  procAnimInt = setInterval(() => {
-    if (procStep < 2) advanceProcStep();
-  }, 1800);
+function advanceProcStep(){
+  if(procStep>0){const prev=procStep-1;document.getElementById('pi'+prev).className='step-circle done';document.getElementById('pi'+prev).innerHTML='<span class="step-check">✓</span>';document.getElementById('ps'+prev).querySelector('.step-text').className='step-text done-t';}
+  if(procStep<4){const ps=document.getElementById('ps'+procStep);const pi=document.getElementById('pi'+procStep);ps.classList.remove('dim');pi.className='step-circle active';pi.innerHTML='<div class="step-dot"></div>';ps.querySelector('.step-text').className='step-text';procStep++;}
 }
 
-function advanceProcStep() {
-  // Mark previous as done
-  if (procStep > 0) {
-    const prev = procStep - 1;
-    document.getElementById('pi' + prev).className = 'step-circle done';
-    document.getElementById('pi' + prev).innerHTML = '<span class="step-check">✓</span>';
-    document.getElementById('ps' + prev).querySelector('.step-text').className = 'step-text done-t';
-  }
-  if (procStep < 4) {
-    const ps = document.getElementById('ps' + procStep);
-    const pi = document.getElementById('pi' + procStep);
-    ps.classList.remove('dim');
-    pi.className = 'step-circle active';
-    pi.innerHTML = '<div class="step-dot"></div>';
-    ps.querySelector('.step-text').className = 'step-text';
-    procStep++;
-  }
-}
+function finishProcessingAnimation(){clearInterval(procAnimInt);while(procStep<4) advanceProcStep();advanceProcStep();}
 
-function finishProcessingAnimation() {
-  clearInterval(procAnimInt);
-  // Drive all steps to active state, then mark the last one done
-  while (procStep < 4) advanceProcStep();
-  advanceProcStep();   // procStep is now 4: marks step 3 as done, no further increment
-}
+let currentTranscript='',currentFields={},currentSummary={},pendingComplianceResult=null;
+function storeComplianceResult(data){pendingComplianceResult=data;}
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Review screen
-// ─────────────────────────────────────────────────────────────────────────────
-let currentTranscript = '';
-let currentFields      = {};
-
-function goReview(transcript, fields) {
+function goReview(transcript,fields){
   finishProcessingAnimation();
-  currentTranscript = transcript || '(no speech detected)';
+  currentTranscript=transcript||'(no speech detected)';
+  document.getElementById('rev-hcp-label').textContent=`${currentCall.hcp_name} · ${currentCall.specialty}`;
+  document.getElementById('rev-hcp-name-display').textContent=currentCall.hcp_name;
+  document.getElementById('rev-product').textContent=currentCall.product;
+  document.getElementById('rev-transcript').textContent=currentTranscript;
+  document.getElementById('compliance-ok-banner').style.display='flex';
+  document.getElementById('compliance-warn-banner').classList.remove('visible');
+  clearFieldHighlights();applyFields(fields||{});applySummary(null);
+  pendingComplianceResult=null;show('review');
+}
 
-  document.getElementById('rev-hcp-label').textContent         = `${currentCall.hcp_name} · ${currentCall.specialty}`;
-  document.getElementById('rev-hcp-name-display').textContent  = currentCall.hcp_name;
-  document.getElementById('rev-product').textContent           = currentCall.product;
-  document.getElementById('rev-transcript').textContent        = currentTranscript;
+function applyFields(fields){
+  currentFields=fields||{};
+  document.getElementById('rev-account').textContent=currentFields.account||'—';
+  document.getElementById('rev-location').textContent=currentFields.location||'—';
+  document.getElementById('rev-address').textContent=currentFields.address||'—';
+  document.getElementById('rev-call-datetime').textContent=currentFields.call_datetime||'—';
+  document.getElementById('rev-record-type').textContent=currentFields.record_type||'Interaction';
+  document.getElementById('rev-engagement-method').textContent=currentFields.engagement_method||'In-office';
+  document.getElementById('rev-virtual-tool').textContent=currentFields.virtual_engagement_tool||'N/A';
+  document.getElementById('rev-fields-extracted').textContent=(currentFields.fields_extracted!==undefined&&currentFields.fields_extracted!==null)?currentFields.fields_extracted:'—';
+  document.getElementById('rev-fields-null').textContent=(currentFields.fields_null!==undefined&&currentFields.fields_null!==null)?currentFields.fields_null:'—';
+  document.getElementById('rev-recommended-action').textContent=currentFields.recommended_action||'—';
+}
 
-  // The Cortex pipeline (compliance → field extraction → summary) runs
-  // server-side AFTER the transcript is sent, so on first paint the CRM
-  // fields below are still unknown. applyFields() fills them in a moment
-  // later once server.py's "fields" WebSocket message arrives.
-  applyFields(fields || {});
-  applySummary(null);
+function applySummary(summary){
+  currentSummary=summary||{};const s=currentSummary;
+  document.getElementById('rev-call-overview').textContent=s.call_overview||'N/A';
+  document.getElementById('rev-summary-products').textContent=s.products_discussed||'N/A';
+  document.getElementById('rev-key-topics').textContent=s.key_topics||'N/A';
+  document.getElementById('rev-hcp-response').textContent=s.hcp_response||'N/A';
+  document.getElementById('rev-objections').textContent=s.objections_raised||'N/A';
+  document.getElementById('rev-next-steps').textContent=s.next_steps||'N/A';
+  document.getElementById('rev-rep-recommendations').textContent=s.rep_recommendations||'N/A';
+}
 
+function clearFieldHighlights(){document.querySelectorAll('#s-review .val-flagged').forEach(el=>el.classList.remove('val-flagged'));}
+
+function showReviewWarning(msg){
   show('review');
+  document.getElementById('compliance-ok-banner').style.display='none';
+  document.getElementById('compliance-warn-banner').classList.add('visible');
+  document.getElementById('compliance-warn-text').textContent=msg;
+  document.querySelector('#s-review .review-body.scroll').scrollTop=0;
 }
 
-function applyFields(fields) {
-  currentFields = fields || {};
+// ── Compliance animation ──────────────────────────────────────────────────────
+let compAnimInt=null,compStep=0;
 
-  // Veeva CRM fields — keys match fieldExtraction.py's return dict exactly
-  // (account, location, address, call_datetime, record_type,
-  // engagement_method, virtual_engagement_tool, fields_extracted,
-  // fields_null, recommended_action).
-  document.getElementById('rev-account').textContent            = currentFields.account              || '—';
-  document.getElementById('rev-location').textContent           = currentFields.location              || '—';
-  document.getElementById('rev-address').textContent            = currentFields.address               || '—';
-  document.getElementById('rev-call-datetime').textContent      = currentFields.call_datetime         || '—';
-  document.getElementById('rev-record-type').textContent        = currentFields.record_type           || 'Interaction';
-  document.getElementById('rev-engagement-method').textContent  = currentFields.engagement_method     || 'In-office';
-  document.getElementById('rev-virtual-tool').textContent       = currentFields.virtual_engagement_tool || 'N/A';
-
-  // Extraction quality metadata
-  document.getElementById('rev-fields-extracted').textContent   =
-    (currentFields.fields_extracted !== undefined && currentFields.fields_extracted !== null) ? currentFields.fields_extracted : '—';
-  document.getElementById('rev-fields-null').textContent        =
-    (currentFields.fields_null !== undefined && currentFields.fields_null !== null) ? currentFields.fields_null : '—';
-  document.getElementById('rev-recommended-action').textContent = currentFields.recommended_action    || '—';
+function runComplianceAnimation(){
+  for(let i=0;i<4;i++){const cs=document.getElementById('cs'+i);const ci=document.getElementById('ci'+i);cs.classList.add('dim');ci.className='step-circle idle';ci.innerHTML='';cs.querySelector('.step-text').className='step-text dim-t';}
+  compStep=0;advanceCompStep();
+  compAnimInt=setInterval(()=>{if(compStep<4) advanceCompStep();},900);
 }
 
-function applySummary(summary) {
-  // Summary Fairy fields — keys match summaryField.py's return dict exactly
-  // (call_overview, products_discussed, key_topics, hcp_response,
-  // objections_raised, next_steps, rep_recommendations).
-  const s = summary || {};
-  document.getElementById('rev-call-overview').textContent       = s.call_overview       || 'N/A';
-  document.getElementById('rev-summary-products').textContent    = s.products_discussed  || 'N/A';
-  document.getElementById('rev-key-topics').textContent          = s.key_topics          || 'N/A';
-  document.getElementById('rev-hcp-response').textContent        = s.hcp_response        || 'N/A';
-  document.getElementById('rev-objections').textContent          = s.objections_raised   || 'N/A';
-  document.getElementById('rev-next-steps').textContent          = s.next_steps          || 'N/A';
-  document.getElementById('rev-rep-recommendations').textContent = s.rep_recommendations || 'N/A';
+function advanceCompStep(){
+  if(compStep>0){const prev=compStep-1;document.getElementById('ci'+prev).className='step-circle done';document.getElementById('ci'+prev).innerHTML='<span class="step-check">✓</span>';document.getElementById('cs'+prev).querySelector('.step-text').className='step-text done-t';}
+  if(compStep<4){const cs=document.getElementById('cs'+compStep);const ci=document.getElementById('ci'+compStep);cs.classList.remove('dim');ci.className='step-circle active';ci.innerHTML='<div class="step-dot"></div>';cs.querySelector('.step-text').className='step-text';compStep++;}
 }
 
-document.getElementById('approve-btn').addEventListener('click', () => {
-  const wordCount = currentTranscript.trim().split(/\s+/).filter(Boolean).length;
-  const mins  = Math.floor(recSecs / 60);
-  const secs  = recSecs % 60;
-  const durStr = recSecs > 0
-    ? `${mins > 0 ? mins + 'm ' : ''}${secs}s`
-    : '—';
+function finishComplianceAnimation(hasViolations){
+  clearInterval(compAnimInt);
+  while(compStep<4) advanceCompStep();
+  if(hasViolations){
+    const ci=document.getElementById('ci'+(compStep-1));
+    ci.className='step-circle warn';ci.innerHTML='<span class="step-warn-icon">!</span>';
+    document.getElementById('cs'+(compStep-1)).querySelector('.step-text').className='step-text warn-t';
+    document.getElementById('comp-sub').textContent='Issues found — review required';
+  } else {
+    advanceCompStep();
+    document.getElementById('comp-sub').textContent='All checks passed';
+  }
+}
 
-  document.getElementById('conf-txt').textContent   = `Call report for ${currentCall.hcp_name} has been logged in Veeva CRM`;
-  document.getElementById('conf-hcp').textContent   = currentCall.hcp_name;
-  document.getElementById('conf-product').textContent = currentCall.product;
-  document.getElementById('conf-duration').textContent = durStr;
-  document.getElementById('conf-words').textContent = wordCount + ' words';
+// ── "Approve and review" — calls /api/compliance-only (Compliance Goblin only)
+// Fields and summary are already populated from the WebSocket pipeline —
+// only compliance needs to run here, cutting wait time by ~3x.
+document.getElementById('approve-btn').addEventListener('click',()=>{
+  show('compliance');
+  document.getElementById('comp-sub').textContent='Analyzing transcript for PI and AECP…';
+  runComplianceAnimation();
 
-  // Mark call as done in local state
-  const call = allCalls.find(c => c.id === currentCall.id);
-  if (call) call.status = 'done';
+  fetch('/api/compliance-only',{
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify({transcript:currentTranscript})
+  })
+  .then(r=>r.json())
+   .then(result=>{
+    const comp=result.compliance||{};
 
+    // ── Empty fields check — reroute back to review with warning ────────────
+    // Checks fields and summary already populated by the WebSocket pipeline.
+    // If both are empty the transcript was too short or unclear to process.
+    const fieldsEmpty=!currentFields.interaction_notes&&!currentFields.account&&
+                      !currentFields.location&&
+                      (!currentFields.products_discussed||currentFields.products_discussed.length===0);
+    const summaryEmpty=!currentSummary.call_overview||currentSummary.call_overview==='N/A';
+
+    if(fieldsEmpty&&summaryEmpty){
+      finishComplianceAnimation(false);
+      setTimeout(()=>{
+        showReviewWarning(
+          'Pipeline returned empty results — the transcript may be too short or unclear. Please re-record or enter fields manually.'
+        );
+      },300);
+      return;
+    }
+
+    const status=comp.compliance_status||'CLEAN';
+    const violations=comp.violations||[];
+    const hasIssues=(status!=='CLEAN'&&status!=='PROCEED')||violations.length>0;
+
+    const delay=Math.max(0,1500-(compStep*900));
+    setTimeout(()=>{
+      finishComplianceAnimation(hasIssues);
+      setTimeout(()=>{
+        if(hasIssues){
+          showComplianceViolations(comp,violations);
+        } else {
+          goConfirmed(comp);
+        }
+      },900);
+    },delay);
+  })
+  .catch(()=>{
+    finishComplianceAnimation(false);
+    setTimeout(()=>goConfirmed({}),900);
+  });
+});
+
+function showComplianceViolations(comp,violations){
+  show('review');
+  document.getElementById('compliance-ok-banner').style.display='none';
+  document.getElementById('compliance-warn-banner').classList.add('visible');
+  let warnText='PI or AECP content found. Flagged fields are highlighted below — edit before resubmitting.';
+  if(violations.length>0){warnText=violations.slice(0,3).join(' · ');if(violations.length>3) warnText+=` (+${violations.length-3} more)`;}
+  document.getElementById('compliance-warn-text').textContent=warnText;
+  clearFieldHighlights();
+  const fieldMap={'rev-account':currentFields.account||'','rev-location':currentFields.location||'','rev-address':currentFields.address||'','rev-hcp-response':currentSummary.hcp_response||'','rev-key-topics':currentSummary.key_topics||'','rev-call-overview':currentSummary.call_overview||''};
+  const placeholders=['PATIENT-REDACTED','HCP-REDACTED','PHI-REDACTED','BIOMETRIC-REDACTED','PI-RED-REDACTED','PI-ORANGE-REDACTED','PI-YELLOW-REDACTED'];
+  const cleanedTranscript=comp.cleaned_transcript||'';
+  if(violations.length>0){document.getElementById('rev-transcript').classList.add('val-flagged');document.getElementById('rev-transcript').textContent=cleanedTranscript||currentTranscript;}
+  Object.entries(fieldMap).forEach(([elId,val])=>{if(placeholders.some(p=>val.toUpperCase().includes(p))){document.getElementById(elId).classList.add('val-flagged');}});
+  document.querySelector('#s-review .review-body.scroll').scrollTop=0;
+}
+
+function goConfirmed(comp){
+  const wordCount=currentTranscript.trim().split(/\s+/).filter(Boolean).length;
+  const mins=Math.floor(recSecs/60);const secs=recSecs%60;
+  const durStr=recSecs>0?`${mins>0?mins+'m ':''}${secs}s`:'—';
+  document.getElementById('conf-txt').textContent=`Call report for ${currentCall.hcp_name} has been logged in Veeva CRM`;
+  document.getElementById('conf-hcp').textContent=currentCall.hcp_name;
+  document.getElementById('conf-product').textContent=currentCall.product;
+  document.getElementById('conf-duration').textContent=durStr;
+  document.getElementById('conf-words').textContent=wordCount+' words';
+  const status=comp.compliance_status||'CLEAN';
+  const confComp=document.getElementById('conf-compliance');
+  confComp.textContent=status;
+  confComp.style.color=status==='CLEAN'?'var(--green)':status==='ADVISORY'?'#E65100':'var(--red)';
+  const call=allCalls.find(c=>c.id===currentCall.id);if(call) call.status='done';
   show('confirmed');
+}
+
+document.getElementById('edit-btn').addEventListener('click',()=>{
+  const firstEditable=document.querySelector('#s-review [contenteditable="true"][data-key]');
+  if(firstEditable){firstEditable.scrollIntoView({behavior:'smooth',block:'center'});firstEditable.focus();}
 });
 
-document.getElementById('edit-btn').addEventListener('click', () => {
-  // For now: make the transcript editable inline
-  const el = document.getElementById('rev-transcript');
-  el.contentEditable = 'true';
-  el.focus();
-  el.style.outline = '2px solid var(--red)';
-  document.getElementById('edit-btn').textContent = 'Done';
-  document.getElementById('edit-btn').onclick = () => {
-    el.contentEditable = 'false';
-    el.style.outline = '';
-    currentTranscript = el.textContent;
-    document.getElementById('edit-btn').textContent = 'Edit';
-    document.getElementById('edit-btn').onclick = null;
-  };
+document.querySelectorAll('#s-review [contenteditable="true"][data-key]').forEach(el=>{
+  el.addEventListener('blur',()=>{
+    const key=el.dataset.key;
+    const target=el.dataset.target==='summary'?currentSummary:currentFields;
+    target[key]=el.textContent.trim();
+    el.classList.remove('val-flagged');
+  });
 });
 
-// ─────────────────────────────────────────────────────────────────────────────
-// Wire up remaining buttons
-// ─────────────────────────────────────────────────────────────────────────────
-document.getElementById('back-btn').addEventListener('click', goBack);
-document.getElementById('done-btn').addEventListener('click', goHome);
-
-// ─────────────────────────────────────────────────────────────────────────────
-// Boot
-// ─────────────────────────────────────────────────────────────────────────────
+document.getElementById('back-btn').addEventListener('click',goBack);
+document.getElementById('done-btn').addEventListener('click',goHome);
 fetchCalls();
 </script>
 </body>

@@ -2,26 +2,19 @@
 server.py  —  Pulse AI FastAPI backend
 =======================================
 Endpoints:
-  GET  /                  → serves static/index.html
-  GET  /api/calls         → dummy call list (JSON)
-  POST /api/compliance    → run compliance + field extraction + summary on transcript
-  WS   /ws/transcribe     → receives raw PCM chunks, encodes on-the-fly,
-                            returns {"transcript": "..."} when client sends "stop"
-                            then automatically runs the full Cortex pipeline
+  GET  /                      → serves static/index.html
+  GET  /api/calls             → dummy call list (JSON)
+  POST /api/pipeline          → run full pipeline on transcript (WS fallback)
+  POST /api/compliance-only   → run Compliance Goblin V3 only (approve and review button)
+  WS   /ws/transcribe         → receives raw PCM chunks, encodes on-the-fly,
+                                returns pipeline results when client sends "stop"
 
-Audio contract with the browser:
-  • Each binary WebSocket frame = one chunk of float32 samples, little-endian,
-    already downsampled to 16 kHz mono by the server.
-  • Browser sends raw float32 at its native sample rate (48 kHz typical) in
-    frames of BROWSER_CHUNK_SAMPLES; server resamples each frame to 16 kHz.
-  • After all chunks, browser sends the text message "stop" to trigger decode.
-  • Server replies with JSON: {"type": "transcript", "text": "..."}
-    then:                    {"type": "compliance", "data": {...}}
-    then:                    {"type": "fields",     "data": {...}}
-    then:                    {"type": "summary",    "data": {...}}
-    or:                      {"type": "error",      "message": "..."}
+Pipeline order:
+    Moonshine transcript → Field Extraction → Summary → Compliance
 
 Run:
+    python server.py
+    or
     python -m uvicorn server:app --host 0.0.0.0 --port 8000 --reload
 """
 
@@ -60,22 +53,20 @@ from transcribe_streaming_experiment import (
     encode_chunk,
 )
 
-# ── Pulse.AI Cortex agents ────────────────────────────────────────────────────
-# These three agents run after transcription completes
-# complianceLayer  → PI and AECP redaction via Compliance Goblin V3
-# fieldExtraction  → Veeva CRM field extraction via Field Extraction Gnome
-# summaryField     → Call summary generation via Summary Fairy
+# ── Pulse.AI Cortex agents — imported in pipeline order ──────────────────────
+# Step 1: Field Extraction Gnome — extracts Veeva CRM fields from raw transcript
+# Step 2: Summary Fairy          — generates call summary from raw transcript
+# Step 3: Compliance Goblin V3   — redacts PI and flags AECP violations last
+from fieldExtraction import FieldExtraction
+from summaryField    import SummaryField
 from complianceLayer import ComplianceLayer
-from fieldExtraction  import FieldExtraction
-from summaryField     import SummaryField
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Paths
 # ─────────────────────────────────────────────────────────────────────────────
 
-_APP_DIR  = Path(__file__).parent
-MODEL_DIR = _APP_DIR / "models" / "moonshine-streaming-medium"
-STATIC    = _APP_DIR / "static"
+MODEL_DIR = r"C:\PulseAI\models\moonshine-streaming-medium"
+STATIC    = Path(__file__).parent / "static"
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Model — loaded once at startup, shared across all connections
@@ -91,48 +82,18 @@ _model: AutoModelForSpeechSeq2Seq = AutoModelForSpeechSeq2Seq.from_pretrained(
 _model.eval()
 print("Model ready.")
 
-# Thread pool for running blocking torch operations without stalling the event loop.
-# max_workers=1: the model is not thread-safe for concurrent inference, so we
-# serialise all generate() / encode_chunk() calls through a single worker thread.
+# Thread pool — max_workers=1 serialises all inference calls (model not thread-safe)
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Dummy call data (replace with CRM API call later)
+# Dummy call data
 # ─────────────────────────────────────────────────────────────────────────────
 
 DUMMY_CALLS: list[dict[str, Any]] = [
-    {
-        "id":        "call-001",
-        "hcp_name":  "Dr. Sarah Patel",
-        "specialty": "Endocrinology",
-        "product":   "Mounjaro",
-        "location":  "North Houston Medical",
-        "status":    "pending",
-    },
-    {
-        "id":        "call-002",
-        "hcp_name":  "Dr. James Kim",
-        "specialty": "Cardiology",
-        "product":   "Jardiance",
-        "location":  "Memorial Hermann",
-        "status":    "done",
-    },
-    {
-        "id":        "call-003",
-        "hcp_name":  "Dr. Maria Rodriguez",
-        "specialty": "Internal Medicine",
-        "product":   "Verzenio",
-        "location":  "UTHealth Houston",
-        "status":    "pending",
-    },
-    {
-        "id":        "call-004",
-        "hcp_name":  "Dr. Chen Wei",
-        "specialty": "Oncology",
-        "product":   "Verzenio",
-        "location":  "MD Anderson",
-        "status":    "pending",
-    },
+    {"id": "call-001", "hcp_name": "Dr. Sarah Patel",     "specialty": "Endocrinology",    "product": "Mounjaro",  "location": "North Houston Medical", "status": "pending"},
+    {"id": "call-002", "hcp_name": "Dr. James Kim",       "specialty": "Cardiology",       "product": "Jardiance", "location": "Memorial Hermann",      "status": "done"},
+    {"id": "call-003", "hcp_name": "Dr. Maria Rodriguez", "specialty": "Internal Medicine", "product": "Verzenio", "location": "UTHealth Houston",       "status": "pending"},
+    {"id": "call-004", "hcp_name": "Dr. Chen Wei",        "specialty": "Oncology",         "product": "Verzenio", "location": "MD Anderson",            "status": "pending"},
 ]
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -154,83 +115,83 @@ async def get_calls():
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# REST endpoint — run full Cortex pipeline on a transcript string
+# REST endpoint — run full pipeline (used by WebSocket fallback)
 # ─────────────────────────────────────────────────────────────────────────────
 
-@app.post("/api/compliance")
-async def run_compliance(body: dict):
+@app.post("/api/pipeline")
+async def run_pipeline(body: dict):
     """
-    Accepts a transcript string and runs the full Pulse.AI pipeline:
-        Compliance Goblin V3 → Field Extraction Gnome → Summary Fairy
+    Runs the full pipeline: Field Extraction → Summary → Compliance.
+    Used as a fallback when the WebSocket pipeline has not already run.
 
-    Request body:
-        {"transcript": "..."}
-
-    Response:
-        {
-          "compliance": {...},
-          "fields":     {...},
-          "summary":    {...}
-        }
+    Request body:  {"transcript": "..."}
+    Response:      {"fields": {...}, "summary": {...}, "compliance": {...}}
     """
     transcript = body.get("transcript", "")
     if not transcript:
         return JSONResponse(status_code=400, content={"error": "transcript is required"})
 
-    # Step 1 — Compliance analysis
-    # Sends transcript to Compliance Goblin V3 for PI and AECP redaction
+    extractor   = FieldExtraction()
+    fields      = extractor.extract(transcript)
+
+    summarizer  = SummaryField()
+    summary     = summarizer.summarize(transcript)
+
     compliance  = ComplianceLayer()
     comp_result = compliance.analyze(transcript)
 
-    # If compliance returns HALT do not run downstream agents
-    if comp_result["recommended_action"] == "HALT":
-        return JSONResponse(content={
-            "compliance": comp_result,
-            "fields":     None,
-            "summary":    None,
-        })
-
-    # Step 2 — Field extraction and summary run on cleaned transcript
-    cleaned    = comp_result["cleaned_transcript"]
-
-    # Field Extraction Gnome extracts Veeva CRM fields from cleaned transcript
-    extractor  = FieldExtraction()
-    fields     = extractor.extract(cleaned)
-
-    # Summary Fairy generates professional call summary from cleaned transcript
-    summarizer = SummaryField()
-    summary    = summarizer.summarize(cleaned)
-
     return JSONResponse(content={
-        "compliance": comp_result,
         "fields":     fields,
         "summary":    summary,
+        "compliance": comp_result,
     })
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# REST endpoint — compliance only (used by "Approve and review" button)
+# ─────────────────────────────────────────────────────────────────────────────
+
+@app.post("/api/compliance-only")
+async def run_compliance_only(body: dict):
+    """
+    Runs only Compliance Goblin V3 on the transcript.
+    Called when the rep taps "Approve and review" on the review screen.
+
+    Fields and summary are already populated from the WebSocket pipeline
+    that ran right after transcription — only compliance needs to run here.
+    This makes the compliance check screen ~3x faster than running all three agents.
+
+    Request body:  {"transcript": "..."}
+    Response:      {"compliance": {...}}
+    """
+    transcript = body.get("transcript", "")
+    if not transcript:
+        return JSONResponse(status_code=400, content={"error": "transcript is required"})
+
+    compliance  = ComplianceLayer()
+    comp_result = compliance.analyze(transcript)
+
+    return JSONResponse(content={"compliance": comp_result})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Sync helpers — run in thread pool to avoid blocking the event loop
 # ─────────────────────────────────────────────────────────────────────────────
 
-BROWSER_SAMPLE_RATE = 48_000   # assumed; client sends actual rate in first msg
+BROWSER_SAMPLE_RATE = 48_000
 
 
 def _resample(audio: np.ndarray, from_rate: int, to_rate: int) -> np.ndarray:
-    """Resample mono float32 audio using integer-ratio polyphase filter."""
     from math import gcd
-    g    = gcd(from_rate, to_rate)
-    up   = to_rate  // g
-    down = from_rate // g
-    return resample_poly(audio, up, down).astype(np.float32)
+    g = gcd(from_rate, to_rate)
+    return resample_poly(audio, to_rate // g, from_rate // g).astype(np.float32)
 
 
 def _sync_encode(chunk, overlap_buffer, is_first):
-    """Blocking encode_chunk call — runs in the thread pool."""
     return encode_chunk(chunk, overlap_buffer, is_first, _processor, _model)
 
 
 def _sync_decode(accumulated_hidden, accumulated_masks):
-    """Blocking decode call — runs in the thread pool."""
     enc_hidden = torch.cat(accumulated_hidden, dim=1)
     enc_mask   = torch.cat(accumulated_masks,  dim=1)
     reconstructed = MoonshineStreamingEncoderModelOutput(
@@ -238,46 +199,31 @@ def _sync_decode(accumulated_hidden, accumulated_masks):
         attention_mask=enc_mask,
     )
     with torch.no_grad():
-        ids = _model.generate(
-            encoder_outputs=reconstructed,
-            max_new_tokens=MAX_TOKENS,
-        )
+        ids = _model.generate(encoder_outputs=reconstructed, max_new_tokens=MAX_TOKENS)
     return _processor.batch_decode(ids, skip_special_tokens=True)[0].strip()
 
 
 def _sync_run_pipeline(transcript: str) -> dict:
     """
-    Runs the full Cortex agent pipeline synchronously.
-    Called from the thread pool so it does not block the WebSocket event loop.
+    Runs the full Cortex agent pipeline synchronously in architecture order:
+        Field Extraction → Summary → Compliance
 
-    Pipeline:
-        transcript → ComplianceLayer → FieldExtraction + SummaryField
+    All three agents receive the raw Moonshine transcript directly.
+    Called from the thread pool so it does not block the WebSocket event loop.
     """
-    # Step 1 — Compliance Goblin V3
+    extractor   = FieldExtraction()
+    fields      = extractor.extract(transcript)
+
+    summarizer  = SummaryField()
+    summary     = summarizer.summarize(transcript)
+
     compliance  = ComplianceLayer()
     comp_result = compliance.analyze(transcript)
 
-    # Return early if compliance HALT — do not send to downstream agents
-    if comp_result["recommended_action"] == "HALT":
-        return {
-            "compliance": comp_result,
-            "fields":     None,
-            "summary":    None,
-        }
-
-    # Step 2 — Field Extraction Gnome and Summary Fairy on cleaned transcript
-    cleaned    = comp_result["cleaned_transcript"]
-
-    extractor  = FieldExtraction()
-    fields     = extractor.extract(cleaned)
-
-    summarizer = SummaryField()
-    summary    = summarizer.summarize(cleaned)
-
     return {
-        "compliance": comp_result,
         "fields":     fields,
         "summary":    summary,
+        "compliance": comp_result,
     }
 
 
@@ -292,7 +238,6 @@ async def ws_transcribe(websocket: WebSocket):
 
     loop = asyncio.get_running_loop()
 
-    # Per-connection transcription state
     sample_rate        = BROWSER_SAMPLE_RATE
     resample_buf       = np.array([], dtype=np.float32)
     overlap_buffer     = np.array([], dtype=np.float32)
@@ -304,176 +249,109 @@ async def ws_transcribe(websocket: WebSocket):
         while True:
             msg = await websocket.receive()
 
-            # ── Text control messages ─────────────────────────────────────────
             if "text" in msg:
                 text = msg["text"]
 
                 if text.startswith("{"):
-                    # JSON config frame sent before audio starts
                     cfg         = json.loads(text)
                     sample_rate = int(cfg.get("sampleRate", BROWSER_SAMPLE_RATE))
                     logging.info(f"Config received: sampleRate={sample_rate}")
                     continue
 
                 if text == "stop":
-                    logging.info(
-                        f"STOP received — chunks_encoded={chunk_index}, "
-                        f"resample_buf_len={len(resample_buf)}, "
-                        f"accumulated_hidden={len(accumulated_hidden)}"
-                    )
+                    logging.info(f"STOP — chunks={chunk_index} buf={len(resample_buf)} hidden={len(accumulated_hidden)}")
 
-                    # No chunks received at all — nothing to decode
                     if not accumulated_hidden:
-                        logging.warning("STOP with no encoded chunks — was recording too short?")
+                        logging.warning("STOP with no encoded chunks")
                         await websocket.send_json({"type": "transcript", "text": ""})
                         break
 
-                    # Flush any leftover samples in resample_buf
+                    # Flush leftover samples
                     if len(resample_buf) > 0:
                         leftover_16k = (
                             _resample(resample_buf, sample_rate, SAMPLE_RATE)
-                            if sample_rate != SAMPLE_RATE
-                            else resample_buf.copy()
+                            if sample_rate != SAMPLE_RATE else resample_buf.copy()
                         )
                         resample_buf = np.array([], dtype=np.float32)
-
                         if len(leftover_16k) > 0:
                             is_first = (chunk_index == 0)
-                            h, m = await loop.run_in_executor(
-                                _executor,
-                                _sync_encode,
-                                leftover_16k, overlap_buffer, is_first,
-                            )
+                            h, m = await loop.run_in_executor(_executor, _sync_encode, leftover_16k, overlap_buffer, is_first)
                             accumulated_hidden.append(h)
                             accumulated_masks.append(m)
                             chunk_index += 1
                             del leftover_16k
                             gc.collect()
 
-                    # Signal client that encoding is complete, decoding starting
                     await websocket.send_json({"type": "decoding"})
-                    logging.info("Sent 'decoding', starting generate()…")
+                    logging.info("Decoding…")
 
-                    # Step 1 — Decode transcript from encoder states
-                    # Runs in thread pool — does NOT block the event loop
-                    transcript = await loop.run_in_executor(
-                        _executor,
-                        _sync_decode,
-                        accumulated_hidden, accumulated_masks,
-                    )
-                    logging.info(f"Decode complete: {len(transcript)} chars")
+                    # Decode transcript from Moonshine encoder states
+                    transcript = await loop.run_in_executor(_executor, _sync_decode, accumulated_hidden, accumulated_masks)
+                    logging.info(f"Transcript: {len(transcript)} chars")
 
-                    # Send transcript to client immediately so rep sees it
-                    await websocket.send_json({
-                        "type": "transcript",
-                        "text": transcript,
-                    })
+                    # Send transcript immediately so rep sees it
+                    await websocket.send_json({"type": "transcript", "text": transcript})
 
-                    # Step 2 — Run full Cortex pipeline on transcript
-                    # Runs in thread pool — does NOT block the event loop
-                    # Sends compliance, fields, and summary back to client
-                    await websocket.send_json({"type": "status", "message": "Running compliance analysis..."})
-                    logging.info("Starting Cortex pipeline…")
+                    # Run Field Extraction → Summary → Compliance pipeline
+                    await websocket.send_json({"type": "status", "message": "Running field extraction..."})
+                    logging.info("Starting pipeline: Field Extraction → Summary → Compliance")
 
-                    pipeline_result = await loop.run_in_executor(
-                        _executor,
-                        _sync_run_pipeline,
-                        transcript,
-                    )
-                    logging.info("Cortex pipeline complete")
+                    pipeline_result = await loop.run_in_executor(_executor, _sync_run_pipeline, transcript)
+                    logging.info("Pipeline complete")
 
-                    # Send compliance result to client
-                    # Client uses this to show compliance status badge and violations
-                    await websocket.send_json({
-                        "type": "compliance",
-                        "data": pipeline_result["compliance"],
-                    })
-
-                    # Send field extraction result to client if not HALT
-                    # Client uses this to populate the Veeva CRM human review form
-                    if pipeline_result["fields"] is not None:
-                        await websocket.send_json({
-                            "type": "fields",
-                            "data": pipeline_result["fields"],
-                        })
-
-                    # Send call summary to client if not HALT
-                    # Client uses this to display the call summary section
-                    if pipeline_result["summary"] is not None:
-                        await websocket.send_json({
-                            "type": "summary",
-                            "data": pipeline_result["summary"],
-                        })
-
-                    # Signal pipeline is complete
+                    # Send results in pipeline order
+                    await websocket.send_json({"type": "fields",     "data": pipeline_result["fields"]})
+                    await websocket.send_json({"type": "summary",    "data": pipeline_result["summary"]})
+                    await websocket.send_json({"type": "compliance", "data": pipeline_result["compliance"]})
                     await websocket.send_json({"type": "done"})
                     await websocket.close()
                     break
 
-            # ── Binary audio frames ───────────────────────────────────────────
             elif "bytes" in msg:
                 raw_bytes: bytes = msg["bytes"]
-                logging.debug(
-                    f"Binary frame received: {len(raw_bytes)} bytes "
-                    f"({len(raw_bytes)//4} float32 samples)"
-                )
-
                 n_samples = len(raw_bytes) // 4
                 if n_samples == 0:
                     continue
 
-                # Each frame is float32 little-endian PCM at browser sample rate
-                frame = np.frombuffer(raw_bytes, dtype="<f4").copy()
-
-                # Resample to 16 kHz if needed, then append to buffer
-                if sample_rate != SAMPLE_RATE:
-                    frame_16k = _resample(frame, sample_rate, SAMPLE_RATE)
-                else:
-                    frame_16k = frame
-
+                frame    = np.frombuffer(raw_bytes, dtype="<f4").copy()
+                frame_16k = _resample(frame, sample_rate, SAMPLE_RATE) if sample_rate != SAMPLE_RATE else frame
                 del frame
                 resample_buf = np.concatenate([resample_buf, frame_16k])
                 del frame_16k
 
-                # Process complete CHUNK_SAMPLES windows immediately
                 while len(resample_buf) >= CHUNK_SAMPLES:
                     chunk        = resample_buf[:CHUNK_SAMPLES].copy()
                     resample_buf = resample_buf[CHUNK_SAMPLES:]
+                    is_first     = (chunk_index == 0)
 
-                    is_first = (chunk_index == 0)
-                    logging.info(
-                        f"Encoding chunk {chunk_index} "
-                        f"(is_first={is_first}, samples={len(chunk)})"
-                    )
-
-                    hidden, mask = await loop.run_in_executor(
-                        _executor,
-                        _sync_encode,
-                        chunk, overlap_buffer, is_first,
-                    )
+                    hidden, mask = await loop.run_in_executor(_executor, _sync_encode, chunk, overlap_buffer, is_first)
                     overlap_buffer = chunk[-OVERLAP_SAMPLES:].copy()
                     accumulated_hidden.append(hidden)
                     accumulated_masks.append(mask)
                     chunk_index += 1
-
                     del chunk
                     gc.collect()
 
-                    # Notify client: chunk encoded, raw audio discarded
-                    await websocket.send_json({
-                        "type":  "chunk_encoded",
-                        "index": chunk_index,
-                    })
+                    await websocket.send_json({"type": "chunk_encoded", "index": chunk_index})
 
     except WebSocketDisconnect:
-        logging.info("WS disconnected by client")
+        logging.info("WS disconnected")
     except Exception as exc:
-        logging.error(f"Unhandled exception in ws_transcribe:\n{traceback.format_exc()}")
+        logging.error(f"WS error:\n{traceback.format_exc()}")
         try:
             await websocket.send_json({"type": "error", "message": str(exc)})
         except Exception:
             pass
     finally:
-        logging.info("WS handler exiting, releasing buffers")
+        logging.info("WS handler exiting")
         del accumulated_hidden, accumulated_masks, overlap_buffer, resample_buf
         gc.collect()
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Entry point
+# ─────────────────────────────────────────────────────────────────────────────
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run("server:app", host="0.0.0.0", port=8000, reload=True)
