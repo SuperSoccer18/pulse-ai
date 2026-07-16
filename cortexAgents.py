@@ -166,11 +166,11 @@ def check_compliance(extraction: dict) -> dict:
     """
     Runs compliance-gate on the (possibly rep-edited) extraction fields.
 
-    Evaluates the structured fields, not the raw transcript — transcript-level
-    PI/AECP scanning is a separate, not-yet-built concern (see
-    complianceLayer.py, left untouched as that future seam). This is the
-    submit-time gate: it runs after the rep has reviewed/filled in fields,
-    right before the Veeva write.
+    Evaluates the structured fields, not the raw transcript. There was an
+    earlier concept (complianceLayer.py, since deleted) that scanned the raw
+    transcript mid-recording with a HALT that stopped transcription — that
+    idea is fully superseded by this submit-time gate, which runs after the
+    rep has reviewed/filled in fields, right before the Veeva write.
 
     Returns
     -------
