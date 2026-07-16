@@ -35,6 +35,14 @@ logging.basicConfig(
 )
 log = logging.getLogger(__name__)
 
+# These two Veeva fields are always constants per the Field Extraction Gnome
+# prompt's own FIXED VALUES section — the model never actually varies them,
+# so they're hardcoded here rather than paying for an LLM round-trip to
+# "extract" a value that never changes.
+FIXED_RECORD_TYPE             = "Interaction"
+FIXED_VIRTUAL_ENGAGEMENT_TOOL = "N/A"
+DEFAULT_ENGAGEMENT_METHOD     = "In-office"
+
 
 class FieldExtraction:
     """
@@ -157,6 +165,10 @@ class FieldExtraction:
         """
         Parses Field Extraction Gnome JSON response into structured Veeva CRM fields.
         Falls back to empty result if JSON parsing fails.
+
+        record_type and virtual_engagement_tool are always hardcoded constants
+        (FIXED_RECORD_TYPE / FIXED_VIRTUAL_ENGAGEMENT_TOOL) rather than read
+        from the model's response — see the module-level comment for why.
         """
 
         try:
@@ -188,9 +200,9 @@ class FieldExtraction:
                 "location":                data.get("location"),
                 "address":                 data.get("address"),
                 "call_datetime":           data.get("call_datetime"),
-                "record_type":             data.get("record_type",             "Interaction"),
-                "engagement_method":       data.get("engagement_method",       "In-office"),
-                "virtual_engagement_tool": data.get("virtual_engagement_tool", "N/A"),
+                "record_type":             FIXED_RECORD_TYPE,
+                "engagement_method":       data.get("engagement_method", DEFAULT_ENGAGEMENT_METHOD),
+                "virtual_engagement_tool": FIXED_VIRTUAL_ENGAGEMENT_TOOL,
                 "interaction_notes":       interaction_notes,
                 "products_discussed":      products_discussed,
                 "fields_extracted":        fields_extracted,
@@ -213,9 +225,9 @@ class FieldExtraction:
             "location":                None,
             "address":                 None,
             "call_datetime":           None,
-            "record_type":             "Interaction",
-            "engagement_method":       "In-office",
-            "virtual_engagement_tool": "N/A",
+            "record_type":             FIXED_RECORD_TYPE,
+            "engagement_method":       DEFAULT_ENGAGEMENT_METHOD,
+            "virtual_engagement_tool": FIXED_VIRTUAL_ENGAGEMENT_TOOL,
             "interaction_notes":       None,
             "products_discussed":      [],
             "fields_extracted":        0,

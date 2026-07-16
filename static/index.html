@@ -298,15 +298,9 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
         </div>
         <div class="f"><div class="lbl">Virtual engagement tool</div><div class="val val-stone" id="rev-virtual-tool">N/A</div></div>
         <div class="f"><div class="lbl">Call transcript</div><div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:220px;overflow-y:auto">—</div></div>
-        <div class="lbl" style="margin:16px 0 8px">Extraction quality</div>
-        <div class="f-row">
-          <div class="stat-mini"><div class="lbl">Fields extracted</div><div class="n" id="rev-fields-extracted" style="color:var(--green)">—</div></div>
-          <div class="stat-mini"><div class="lbl">Fields null</div><div class="n" id="rev-fields-null" style="color:var(--red)">—</div></div>
-        </div>
         <div class="f" style="margin-top:12px"><div class="lbl">Recommended action</div><span class="tag tag-red" id="rev-recommended-action" style="font-size:11px">—</span></div>
         <div class="lbl" style="margin:16px 0 8px">Call summary</div>
         <div class="f"><div class="lbl">Call overview</div><div class="val val-stone" contenteditable="true" data-key="call_overview" data-target="summary" id="rev-call-overview">—</div></div>
-        <div class="f"><div class="lbl">Products discussed</div><div class="val val-stone" contenteditable="true" data-key="products_discussed" data-target="summary" id="rev-summary-products">—</div></div>
         <div class="f"><div class="lbl">Key topics</div><div class="val val-stone" contenteditable="true" data-key="key_topics" data-target="summary" id="rev-key-topics">—</div></div>
         <div class="f"><div class="lbl">HCP response</div><div class="val val-stone" contenteditable="true" data-key="hcp_response" data-target="summary" id="rev-hcp-response">—</div></div>
         <div class="f"><div class="lbl">Objections raised</div><div class="val val-stone" contenteditable="true" data-key="objections_raised" data-target="summary" id="rev-objections">—</div></div>
@@ -592,15 +586,12 @@ function applyFields(fields){
   document.getElementById('rev-record-type').textContent=currentFields.record_type||'Interaction';
   document.getElementById('rev-engagement-method').textContent=currentFields.engagement_method||'In-office';
   document.getElementById('rev-virtual-tool').textContent=currentFields.virtual_engagement_tool||'N/A';
-  document.getElementById('rev-fields-extracted').textContent=(currentFields.fields_extracted!==undefined&&currentFields.fields_extracted!==null)?currentFields.fields_extracted:'—';
-  document.getElementById('rev-fields-null').textContent=(currentFields.fields_null!==undefined&&currentFields.fields_null!==null)?currentFields.fields_null:'—';
   document.getElementById('rev-recommended-action').textContent=currentFields.recommended_action||'—';
 }
 
 function applySummary(summary){
   currentSummary=summary||{};const s=currentSummary;
   document.getElementById('rev-call-overview').textContent=s.call_overview||'N/A';
-  document.getElementById('rev-summary-products').textContent=s.products_discussed||'N/A';
   document.getElementById('rev-key-topics').textContent=s.key_topics||'N/A';
   document.getElementById('rev-hcp-response').textContent=s.hcp_response||'N/A';
   document.getElementById('rev-objections').textContent=s.objections_raised||'N/A';
@@ -618,7 +609,6 @@ function showReviewWarning(msg){
   document.querySelector('#s-review .review-body.scroll').scrollTop=0;
 }
 
-// ── Compliance animation ──────────────────────────────────────────────────────
 let compAnimInt=null,compStep=0;
 
 function runComplianceAnimation(){
@@ -632,23 +622,20 @@ function advanceCompStep(){
   if(compStep<4){const cs=document.getElementById('cs'+compStep);const ci=document.getElementById('ci'+compStep);cs.classList.remove('dim');ci.className='step-circle active';ci.innerHTML='<div class="step-dot"></div>';cs.querySelector('.step-text').className='step-text';compStep++;}
 }
 
-function finishComplianceAnimation(hasViolations){
+function finishComplianceAnimation(hasViolations,customMessage){
   clearInterval(compAnimInt);
   while(compStep<4) advanceCompStep();
   if(hasViolations){
     const ci=document.getElementById('ci'+(compStep-1));
     ci.className='step-circle warn';ci.innerHTML='<span class="step-warn-icon">!</span>';
     document.getElementById('cs'+(compStep-1)).querySelector('.step-text').className='step-text warn-t';
-    document.getElementById('comp-sub').textContent='Issues found — review required';
+    document.getElementById('comp-sub').textContent=customMessage||'Issues found — review required';
   } else {
     advanceCompStep();
     document.getElementById('comp-sub').textContent='All checks passed';
   }
 }
 
-// ── "Approve and review" — calls /api/compliance-only (Compliance Goblin only)
-// Fields and summary are already populated from the WebSocket pipeline —
-// only compliance needs to run here, cutting wait time by ~3x.
 document.getElementById('approve-btn').addEventListener('click',()=>{
   show('compliance');
   document.getElementById('comp-sub').textContent='Analyzing transcript for PI and AECP…';
@@ -663,21 +650,18 @@ document.getElementById('approve-btn').addEventListener('click',()=>{
    .then(result=>{
     const comp=result.compliance||{};
 
-    // ── Empty fields check — reroute back to review with warning ────────────
-    // Checks fields and summary already populated by the WebSocket pipeline.
-    // If both are empty the transcript was too short or unclear to process.
     const fieldsEmpty=!currentFields.interaction_notes&&!currentFields.account&&
                       !currentFields.location&&
                       (!currentFields.products_discussed||currentFields.products_discussed.length===0);
     const summaryEmpty=!currentSummary.call_overview||currentSummary.call_overview==='N/A';
 
     if(fieldsEmpty&&summaryEmpty){
-      finishComplianceAnimation(false);
+      finishComplianceAnimation(true,'No data extracted — review required');
       setTimeout(()=>{
         showReviewWarning(
           'Pipeline returned empty results — the transcript may be too short or unclear. Please re-record or enter fields manually.'
         );
-      },300);
+      },900);
       return;
     }
 
