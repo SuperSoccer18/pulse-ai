@@ -1,18 +1,21 @@
 """
 summaryField.py  —  Pulse.AI Summary Layer
 ==========================================
-Receives the cleaned transcript from complianceLayer.py and
-sends it to Summary Fairy on Cortex to generate a professional
-call summary for internal records and coaching.
+Receives the raw transcript directly from the Moonshine decoder and sends
+it to Summary Fairy on Cortex to generate a professional call summary
+for internal records and coaching.
+
+Runs in parallel with fieldExtraction.py. Compliance Goblin V3 runs AFTER
+both of these have completed, as the final gate before the record is
+shown for approval / sent to CRM.
 
 Pipeline position:
-    complianceLayer.py → summaryField.py
-    (runs in parallel with fieldExtraction.py)
+    Moonshine transcript → summaryField.py (parallel with fieldExtraction.py) → complianceLayer.py
 
 Usage:
     from summaryField import SummaryField
     summarizer = SummaryField()
-    result = summarizer.summarize(cleaned_transcript)
+    result = summarizer.summarize(transcript)
 """
 
 # requests is the HTTP library used to call the Cortex streaming API
@@ -25,7 +28,7 @@ import logging
 from datetime import datetime
 
 # get_bearer_token obtains the Azure AD OAuth2 Bearer token for Cortex
-# Reuses the same cached token as complianceLayer.py if still valid
+# Reuses the same cached token as complianceLayer.py / fieldExtraction.py if still valid
 from cortexAuthenticator import get_bearer_token
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -42,11 +45,13 @@ log = logging.getLogger(__name__)
 # Cortex API Configuration — Summary Fairy
 # ─────────────────────────────────────────────────────────────────────────────
 
-# CORTEX_BASE_URL is the root URL for Lilly's Cortex platform
-CORTEX_BASE_URL = "https://gateway.apim-dev.lilly.com"
+# CORTEX_BASE_URL is the root URL for Lilly's Cortex platform via APIM
+CORTEX_BASE_URL = "https://gateway-intranet.apim.lilly.com/cortex"
 
-# SUMMARY_FAIRY_ENDPOINT is the path for the Summary Fairy agent
-# POST requests here ask the agent to summarize a cleaned transcript
+# SUMMARY_FAIRY_ENDPOINT is the path for the Summary Fairy agent.
+# NOTE: the correct APIM path includes the "/cortex" segment —
+#   https://gateway.apim-dev.lilly.com/cortex/model/ask/summary-fairy
+# The previous "/api/model/ask/..." path (missing "/cortex") was returning 404s.
 SUMMARY_FAIRY_ENDPOINT = "/api/model/ask/summary-fairy"
 
 # SUMMARY_FAIRY_URL is the full URL used in every POST request
@@ -73,12 +78,12 @@ REQUEST_TIMEOUT_SECONDS = 90
 
 class SummaryField:
     """
-    Sends the cleaned transcript from Compliance Goblin to Summary Fairy
-    on Cortex and returns a structured call summary for internal records
-    and rep coaching.
+    Sends the raw transcript to Summary Fairy on Cortex and returns a
+    structured call summary for internal records and rep coaching.
 
-    Receives the cleaned_transcript from complianceLayer.py result dict.
-    Runs in parallel with fieldExtraction.py in the full pipeline.
+    Runs directly on the Moonshine transcript, in parallel with
+    fieldExtraction.py. Compliance Goblin V3 (complianceLayer.py) runs
+    afterward as the final gate.
     """
 
     def __init__(self):
@@ -90,17 +95,15 @@ class SummaryField:
 
         log.info("SummaryField initialized")
 
-    def summarize(self, cleaned_transcript: str) -> dict:
+    def summarize(self, transcript: str) -> dict:
         """
-        Sends the cleaned transcript to Summary Fairy and returns a
+        Sends the raw transcript to Summary Fairy and returns a
         structured call summary dict.
 
         Parameters
         ----------
-        cleaned_transcript : str
-            The redacted transcript from complianceLayer.py result dict.
-            All PI and AECP content has already been removed by Compliance Goblin.
-            Summary Fairy will not encounter any redaction placeholders.
+        transcript : str
+            The raw decoded transcript from the Moonshine pipeline.
 
         Returns
         -------
@@ -109,20 +112,20 @@ class SummaryField:
             objections_raised, next_steps, rep_recommendations, raw_response
         """
 
-        # Validate that a cleaned transcript was provided
-        if not cleaned_transcript or not cleaned_transcript.strip():
-            log.error("Empty or null cleaned transcript received — skipping summary")
+        # Validate that a transcript was provided
+        if not transcript or not transcript.strip():
+            log.error("Empty or null transcript received — skipping summary")
             return self._empty_result()
 
         # Increment summary counter and build zero-padded summary ID
         self.summaries_run += 1
         summary_id = f"SUMMARY-{self.summaries_run:04d}"
 
-        log.info(f"{summary_id}: Sending cleaned transcript to Summary Fairy")
-        log.info(f"{summary_id}: Preview: {cleaned_transcript[:80]}...")
+        log.info(f"{summary_id}: Sending transcript to Summary Fairy")
+        log.info(f"{summary_id}: Preview: {transcript[:80]}...")
 
-        # POST cleaned transcript to Summary Fairy via streaming API
-        raw_response = self._call_api(cleaned_transcript, summary_id)
+        # POST transcript to Summary Fairy via streaming API
+        raw_response = self._call_api(transcript, summary_id)
 
         # Return empty result if API call failed
         if raw_response is None:
@@ -136,24 +139,24 @@ class SummaryField:
 
         return result
 
-    def _call_api(self, cleaned_transcript: str, summary_id: str) -> str | None:
+    def _call_api(self, transcript: str, summary_id: str) -> str | None:
         """
-        POSTs the cleaned transcript to Summary Fairy using the Cortex
+        POSTs the raw transcript to Summary Fairy using the Cortex
         streaming API.
 
         Uses the exact API pattern from the Pulse.AI specification:
-            POST /api/model/ask/summary-fairy
+            POST /cortex/model/ask/summary-fairy
             params: stream=true, no_summary=false,
                     background_job=false, workflow_timeout=1
-            form_data: q=<cleaned transcript>
+            form_data: q=<transcript>
             headers: accept: application/json, Authorization: Bearer <token>
         """
 
         # Build form data — "q" is the field name Summary Fairy expects
-        form_data = {"q": cleaned_transcript}
+        form_data = {"q": transcript}
 
-        # Obtain a valid Bearer token from Azure AD via cortex_auth.py
-        # The same cached token from complianceLayer.py is reused if valid
+        # Obtain a valid Bearer token from Azure AD via cortexAuthenticator.py
+        # The same cached token from another agent call is reused if valid
         try:
             bearer_token = get_bearer_token()
         except Exception as e:
@@ -161,7 +164,6 @@ class SummaryField:
             return None
 
         # Build headers with Bearer token from Azure AD
-        # Token obtained using Tenant ID, Client ID, and Secret Value
         headers = {
             "accept": "application/json",
             "Authorization": f"Bearer {bearer_token}",
@@ -174,7 +176,7 @@ class SummaryField:
             response = requests.post(
                 SUMMARY_FAIRY_URL,                 # Summary Fairy endpoint
                 params=CORTEX_PARAMS,              # stream=true, workflow_timeout=1
-                data=form_data,                    # cleaned transcript in field q
+                data=form_data,                    # transcript in field q
                 headers=headers,                   # accept + Bearer token
                 stream=True,                       # enable line-by-line streaming
                 timeout=REQUEST_TIMEOUT_SECONDS,   # abort if no response in 90s
@@ -185,26 +187,22 @@ class SummaryField:
 
             log.info(f"{summary_id}: Streaming Summary Fairy response")
 
-            # Print visual separator for streamed output readability
             print(f"\n{'='*60}")
             print(f"SUMMARY FAIRY — {summary_id}")
             print(f"{'='*60}")
 
-            # accumulated_lines stores each decoded streaming line
             accumulated_lines = []
 
-            # iter_lines() reads the streaming response body one line at a time
             for line in response.iter_lines():
                 if line:
                     decoded = line.decode("utf-8")
-                    print(decoded)                 # real-time display
+                    print(decoded)
                     accumulated_lines.append(decoded)
 
             print(f"{'='*60}\n")
 
             log.info(f"{summary_id}: Received {len(accumulated_lines)} lines")
 
-            # Return full response text for parsing
             return "\n".join(accumulated_lines)
 
         except requests.exceptions.ConnectionError as e:
@@ -217,6 +215,10 @@ class SummaryField:
             log.error(f"{summary_id}: HTTP {response.status_code} — {e}")
             if response.status_code == 401:
                 log.error(f"{summary_id}: 401 Unauthorized — check Azure AD credentials")
+            elif response.status_code == 403:
+                log.error(f"{summary_id}: 403 Forbidden — check client_id is on Cortex access list and is an owner of this agent config")
+            elif response.status_code == 404:
+                log.error(f"{summary_id}: 404 Not Found — check APIM URL path/environment: {SUMMARY_FAIRY_URL}")
             return None
         except requests.exceptions.RequestException as e:
             log.error(f"{summary_id}: Request error — {e}")
@@ -236,24 +238,17 @@ class SummaryField:
             REP RECOMMENDATIONS: <suggested actions for the rep>
         """
 
-        # Helper to extract a multi-word field value after a section label
-        # Reads until the next all-caps label line or end of response
         def extract_field(label: str) -> str:
             if label not in raw:
                 return "N/A"
-            # Find where the label ends
             start = raw.find(label) + len(label)
-            # Find the next label by looking for lines that start with an
-            # all-caps word followed by a colon — marks the next section
             remaining = raw[start:]
             lines = remaining.split("\n")
             collected = []
             for line in lines:
                 stripped = line.strip()
-                # Stop when we hit the next field label
                 if stripped and stripped.isupper() and ":" in stripped and len(stripped) < 40:
                     break
-                # Stop at another known label even if not all-caps
                 if any(
                     stripped.startswith(lbl)
                     for lbl in [
@@ -268,7 +263,6 @@ class SummaryField:
             value = " ".join(c for c in collected if c).strip()
             return value if value else "N/A"
 
-        # Extract each summary field from the raw response
         call_overview       = extract_field("CALL OVERVIEW:")
         products_discussed  = extract_field("PRODUCTS DISCUSSED:")
         key_topics          = extract_field("KEY TOPICS:")
@@ -293,7 +287,7 @@ class SummaryField:
     # ── Fallback result constructors ──────────────────────────────────────────
 
     def _empty_result(self) -> dict:
-        """Returned when cleaned transcript is empty or None."""
+        """Returned when transcript is empty or None."""
         return {
             "summary_id":          "EMPTY",
             "call_overview":       "N/A",
@@ -324,12 +318,11 @@ if __name__ == "__main__":
 
     print("\n=== Pulse.AI — Summary Field Standalone Test ===\n")
 
-    # Use a clean PROCEED transcript — no PI or AECP content
     if len(sys.argv) > 1:
-        cleaned_text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+        transcript_text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
         log.info(f"Loaded: {sys.argv[1]}")
     else:
-        cleaned_text = (
+        transcript_text = (
             "Visited Chicago Oncology Associates at 676 North St. Clair Street "
             "Suite 1200 Chicago IL 60611 on June 17 2026 at 10:30 AM. "
             "Discussed VERZENIO for HR+/HER2- mBC in combination with an "
@@ -345,7 +338,7 @@ if __name__ == "__main__":
         log.info("Using built-in TC-FEG-01 clean test transcript")
 
     summarizer = SummaryField()
-    result = summarizer.summarize(cleaned_text)
+    result = summarizer.summarize(transcript_text)
 
     print("\n=== Summary Result ===")
     print(f"Call Overview:       {result['call_overview']}")
@@ -355,4 +348,3 @@ if __name__ == "__main__":
     print(f"Objections Raised:   {result['objections_raised']}")
     print(f"Next Steps:          {result['next_steps']}")
     print(f"Rep Recommendations: {result['rep_recommendations']}")
-

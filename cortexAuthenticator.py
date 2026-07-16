@@ -27,14 +27,15 @@ from dotenv import load_dotenv
 import os
 load_dotenv()
  
-TENANT_ID    = os.getenv("TENANT_ID", "18a59a81-eea8-4c30-948a-d8824cdc2580")
-CLIENT_ID    = os.getenv("CLIENT_ID", "efedba45-a808-4b16-84e9-5742e35a79cc")
-SECRET_VALUE = os.getenv("SECRET_VALUE", "KV58Q~ecTQ_CML2TI-4wriIvoLC4JYD6j9zDOazd")
+TENANT_ID    = os.getenv("TENANT_ID")
+CLIENT_ID    = os.getenv("CLIENT_ID")
+SECRET_VALUE = os.getenv("SECRET_VALUE")
+#SECRET_ID    = os.getenv("SECRET_ID")
  
 # SCOPE — must include .default suffix for client credentials flow
 SCOPE = os.getenv("SCOPE", "api://Cortex.lilly.com/.default")
  
-CORTEX_BASE_URL  = os.getenv("CORTEX_BASE_URL", "https://gateway-intranet.apim-dev.lilly.com")
+CORTEX_BASE_URL  = os.getenv("CORTEX_BASE_URL", "https://gateway-intranet.apim.lilly.com/cortex")
  
 # TOKEN_URL is the Azure AD OAuth2 token endpoint for this tenant
 TOKEN_URL = f"https://login.microsoftonline.com/{TENANT_ID}/oauth2/v2.0/token"

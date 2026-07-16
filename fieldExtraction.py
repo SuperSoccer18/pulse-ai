@@ -1,17 +1,21 @@
 """
 fieldExtraction.py  —  Pulse.AI Field Extraction Layer
 =======================================================
-Receives the cleaned transcript from complianceLayer.py and
-sends it to Field Extraction Gnome on Cortex to extract
-structured Veeva CRM field values.
+Receives the raw transcript directly from the Moonshine decoder and sends
+it to Field Extraction Gnome on Cortex to extract structured Veeva CRM
+field values.
+
+Runs in parallel with summaryField.py. Compliance Goblin V3 runs AFTER
+both of these have completed, as the final gate before the record is
+shown for approval / sent to CRM.
 
 Pipeline position:
-    complianceLayer.py → fieldExtraction.py → summaryField.py
+    Moonshine transcript → fieldExtraction.py (parallel with summaryField.py) → complianceLayer.py
 
 Usage:
     from fieldExtraction import FieldExtraction
     extractor = FieldExtraction()
-    result = extractor.extract(cleaned_transcript)
+    result = extractor.extract(transcript)
 """
 
 # requests is the HTTP library used to call the Cortex streaming API
@@ -27,7 +31,7 @@ from datetime import datetime
 import json
 
 # get_bearer_token obtains the Azure AD OAuth2 Bearer token for Cortex
-# Reuses the same cached token as complianceLayer.py if still valid
+# Reuses the same cached token as complianceLayer.py / summaryField.py if still valid
 from cortexAuthenticator import get_bearer_token
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -44,11 +48,13 @@ log = logging.getLogger(__name__)
 # Cortex API Configuration — Field Extraction Gnome
 # ─────────────────────────────────────────────────────────────────────────────
 
-# CORTEX_BASE_URL is the root URL for Lilly's Cortex platform
-CORTEX_BASE_URL = "https://gateway.apim-dev.lilly.com"
+# CORTEX_BASE_URL is the root URL for Lilly's Cortex platform via APIM
+CORTEX_BASE_URL = "https://gateway-intranet.apim.lilly.com/cortex"
 
-# FIELD_EXTRACTION_ENDPOINT is the path for the Field Extraction Gnome agent
-# POST requests here ask the agent to extract Veeva CRM fields from a transcript
+# FIELD_EXTRACTION_ENDPOINT is the path for the Field Extraction Gnome agent.
+# NOTE: the correct APIM path includes the "/cortex" segment —
+#   https://gateway.apim-dev.lilly.com/cortex/model/ask/field-extraction-gnome
+# The previous "/api/model/ask/..." path (missing "/cortex") was returning 404s.
 FIELD_EXTRACTION_ENDPOINT = "/api/model/ask/field-extraction-gnome"
 
 # FIELD_EXTRACTION_URL is the full URL used in every POST request
@@ -75,11 +81,12 @@ REQUEST_TIMEOUT_SECONDS = 90
 
 class FieldExtraction:
     """
-    Sends the cleaned transcript from Compliance Goblin to Field Extraction
-    Gnome on Cortex and returns structured Veeva CRM field values.
+    Sends the raw transcript to Field Extraction Gnome on Cortex and returns
+    structured Veeva CRM field values.
 
-    Receives the cleaned_transcript from complianceLayer.py result dict.
-    Passes extracted fields to summaryField.py for call summarization.
+    Runs directly on the Moonshine transcript, in parallel with
+    summaryField.py. Compliance Goblin V3 (complianceLayer.py) runs
+    afterward as the final gate.
     """
 
     def __init__(self):
@@ -91,16 +98,15 @@ class FieldExtraction:
 
         log.info("FieldExtraction initialized")
 
-    def extract(self, cleaned_transcript: str) -> dict:
+    def extract(self, transcript: str) -> dict:
         """
-        Sends the cleaned transcript to Field Extraction Gnome and returns
+        Sends the raw transcript to Field Extraction Gnome and returns
         structured Veeva CRM field values ready for human review.
 
         Parameters
         ----------
-        cleaned_transcript : str
-            The redacted transcript from complianceLayer.py result dict.
-            All PI and AECP content has already been removed by Compliance Goblin.
+        transcript : str
+            The raw decoded transcript from the Moonshine pipeline.
 
         Returns
         -------
@@ -111,20 +117,20 @@ class FieldExtraction:
             fields_extracted, fields_null, recommended_action, raw_response
         """
 
-        # Validate that a cleaned transcript was actually provided
-        if not cleaned_transcript or not cleaned_transcript.strip():
-            log.error("Empty or null cleaned transcript received — skipping extraction")
+        # Validate that a transcript was actually provided
+        if not transcript or not transcript.strip():
+            log.error("Empty or null transcript received — skipping extraction")
             return self._empty_result()
 
         # Increment extraction counter and build zero-padded extraction ID
         self.extractions_run += 1
         extraction_id = f"EXTRACT-{self.extractions_run:04d}"
 
-        log.info(f"{extraction_id}: Sending cleaned transcript to Field Extraction Gnome")
-        log.info(f"{extraction_id}: Preview: {cleaned_transcript[:80]}...")
+        log.info(f"{extraction_id}: Sending transcript to Field Extraction Gnome")
+        log.info(f"{extraction_id}: Preview: {transcript[:80]}...")
 
-        # POST cleaned transcript to Field Extraction Gnome via streaming API
-        raw_response = self._call_api(cleaned_transcript, extraction_id)
+        # POST transcript to Field Extraction Gnome via streaming API
+        raw_response = self._call_api(transcript, extraction_id)
 
         # Return empty result if API call failed
         if raw_response is None:
@@ -142,24 +148,24 @@ class FieldExtraction:
 
         return result
 
-    def _call_api(self, cleaned_transcript: str, extraction_id: str) -> str | None:
+    def _call_api(self, transcript: str, extraction_id: str) -> str | None:
         """
-        POSTs the cleaned transcript to Field Extraction Gnome using the
+        POSTs the raw transcript to Field Extraction Gnome using the
         Cortex streaming API.
 
         Uses the exact API pattern from the Pulse.AI specification:
-            POST /api/model/ask/field-extraction-gnome
+            POST /cortex/model/ask/field-extraction-gnome
             params: stream=true, no_summary=false,
                     background_job=false, workflow_timeout=1
-            form_data: q=<cleaned transcript>
+            form_data: q=<transcript>
             headers: accept: application/json, Authorization: Bearer <token>
         """
 
         # Build form data — "q" is the field name Field Extraction Gnome expects
-        form_data = {"q": cleaned_transcript}
+        form_data = {"q": transcript}
 
-        # Obtain a valid Bearer token from Azure AD via cortex_auth.py
-        # The same cached token from complianceLayer.py may still be valid
+        # Obtain a valid Bearer token from Azure AD via cortexAuthenticator.py
+        # The same cached token from another agent call may still be valid
         try:
             bearer_token = get_bearer_token()
         except Exception as e:
@@ -167,7 +173,6 @@ class FieldExtraction:
             return None
 
         # Build headers with Bearer token from Azure AD
-        # Token obtained using Tenant ID, Client ID, and Secret Value
         headers = {
             "accept": "application/json",
             "Authorization": f"Bearer {bearer_token}",
@@ -180,7 +185,7 @@ class FieldExtraction:
             response = requests.post(
                 FIELD_EXTRACTION_URL,              # Field Extraction Gnome endpoint
                 params=CORTEX_PARAMS,              # stream=true, workflow_timeout=1
-                data=form_data,                    # cleaned transcript in field q
+                data=form_data,                    # transcript in field q
                 headers=headers,                   # accept + Bearer token
                 stream=True,                       # enable line-by-line streaming
                 timeout=REQUEST_TIMEOUT_SECONDS,   # abort if no response in 90s
@@ -191,26 +196,22 @@ class FieldExtraction:
 
             log.info(f"{extraction_id}: Streaming Field Extraction Gnome response")
 
-            # Print visual separator for streamed output readability
             print(f"\n{'='*60}")
             print(f"FIELD EXTRACTION GNOME — {extraction_id}")
             print(f"{'='*60}")
 
-            # accumulated_lines stores each decoded streaming line
             accumulated_lines = []
 
-            # iter_lines() reads the streaming response body one line at a time
             for line in response.iter_lines():
                 if line:
                     decoded = line.decode("utf-8")
-                    print(decoded)                 # real-time display
+                    print(decoded)
                     accumulated_lines.append(decoded)
 
             print(f"{'='*60}\n")
 
             log.info(f"{extraction_id}: Received {len(accumulated_lines)} lines")
 
-            # Return full response text for parsing
             return "\n".join(accumulated_lines)
 
         except requests.exceptions.ConnectionError as e:
@@ -223,6 +224,10 @@ class FieldExtraction:
             log.error(f"{extraction_id}: HTTP {response.status_code} — {e}")
             if response.status_code == 401:
                 log.error(f"{extraction_id}: 401 Unauthorized — check Azure AD credentials")
+            elif response.status_code == 403:
+                log.error(f"{extraction_id}: 403 Forbidden — check client_id is on Cortex access list and is an owner of this agent config")
+            elif response.status_code == 404:
+                log.error(f"{extraction_id}: 404 Not Found — check APIM URL path/environment: {FIELD_EXTRACTION_URL}")
             return None
         except requests.exceptions.RequestException as e:
             log.error(f"{extraction_id}: Request error — {e}")
@@ -250,21 +255,14 @@ class FieldExtraction:
             RECOMMENDED ACTION: PROCEED or REVIEW or HALT
         """
 
-        # Helper to extract a single-line field value after a label
         def extract_field(label: str) -> str | None:
-            # Search for the label in the raw response text
             if label not in raw:
                 return None
-            # Find where the label ends and extract the rest of the line
             start = raw.find(label) + len(label)
-            # Find where the line ends — next newline character
             end = raw.find("\n", start)
-            # Slice and clean whitespace and quotes
             value = raw[start:end if end != -1 else len(raw)].strip().strip('"')
-            # Return None if the extracted value is null or empty
             return None if value.lower() in ("null", "n/a", "", "none") and label not in ("VIRTUAL ENGAGEMENT TOOL:", "RECORD TYPE:") else value
 
-        # Extract each Veeva CRM field from the response text
         account              = extract_field("ACCOUNT:")
         location             = extract_field("LOCATION:")
         address              = extract_field("ADDRESS:")
@@ -274,51 +272,39 @@ class FieldExtraction:
         virtual_tool         = "N/A"    # always fixed to N/A per Veeva mapping
         interaction_notes    = extract_field("INTERACTION NOTES:")
 
-        # Trim interaction notes to 255 character Veeva field limit
         if interaction_notes and len(interaction_notes) > 255:
             interaction_notes = interaction_notes[:252] + "..."
 
-        # Parse the PRODUCTS DISCUSSED section into a list of dicts
         products_discussed = []
         if "PRODUCTS DISCUSSED:" in raw:
-            # Find the start of the products section
             start = raw.find("PRODUCTS DISCUSSED:") + len("PRODUCTS DISCUSSED:")
-            # Find the end — next major section heading
             end_markers = ["FIELDS EXTRACTED:", "FIELDS NULL:", "RECOMMENDED ACTION:"]
             end = len(raw)
             for marker in end_markers:
                 pos = raw.find(marker, start)
                 if pos != -1 and pos < end:
                     end = pos
-            # Extract the products block text
             products_block = raw[start:end].strip()
-            # Parse each product entry — starts with "- Product:"
             current_product = None
             for line in products_block.split("\n"):
                 line = line.strip()
                 if line.startswith("- Product:"):
-                    # Save previous product if exists
                     if current_product:
                         products_discussed.append(current_product)
-                    # Start new product entry
                     current_product = {
                         "product":    line.replace("- Product:", "").strip(),
                         "indication": None,
                     }
                 elif line.startswith("Indication:") and current_product:
-                    # Add indication to current product
                     current_product["indication"] = line.replace("Indication:", "").strip()
-            # Append the last product entry
             if current_product:
                 products_discussed.append(current_product)
 
-        # Count extracted vs null fields for the summary
         all_fields = [account, location, address, call_datetime,
                       interaction_notes]
         fields_extracted = sum(1 for f in all_fields if f is not None) + len(products_discussed) + 3
         fields_null      = sum(1 for f in all_fields if f is None)
 
-        # Parse recommended action
         upper = raw.upper()
         if "HALT" in upper:
             action = "HALT"
@@ -348,7 +334,7 @@ class FieldExtraction:
     # ── Fallback result constructors ──────────────────────────────────────────
 
     def _empty_result(self) -> dict:
-        """Returned when cleaned transcript is empty or None."""
+        """Returned when transcript is empty or None."""
         return {
             "extraction_id":          "EMPTY",
             "account":                None,
@@ -385,12 +371,11 @@ if __name__ == "__main__":
 
     print("\n=== Pulse.AI — Field Extraction Standalone Test ===\n")
 
-    # Use a clean PROCEED transcript — no PI or AECP content
     if len(sys.argv) > 1:
-        cleaned_text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
+        transcript_text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
         log.info(f"Loaded: {sys.argv[1]}")
     else:
-        cleaned_text = (
+        transcript_text = (
             "Visited Chicago Oncology Associates at 676 North St. Clair Street "
             "Suite 1200 Chicago IL 60611 on June 17 2026 at 10:30 AM. "
             "Discussed VERZENIO for HR+/HER2- mBC in combination with an "
@@ -402,7 +387,7 @@ if __name__ == "__main__":
         log.info("Using built-in TC-FEG-01 clean test transcript")
 
     extractor = FieldExtraction()
-    result = extractor.extract(cleaned_text)
+    result = extractor.extract(transcript_text)
 
     print("\n=== Field Extraction Result ===")
     print(f"Account:          {result['account']}")
@@ -417,4 +402,3 @@ if __name__ == "__main__":
     print(f"Fields Extracted: {result['fields_extracted']}")
     print(f"Fields Null:      {result['fields_null']}")
     print(f"Action:           {result['recommended_action']}")
-

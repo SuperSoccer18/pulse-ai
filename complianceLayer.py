@@ -1,12 +1,16 @@
 """
 complianceLayer.py  —  Pulse.AI Compliance Layer
 =================================================
-Receives transcript text from the Moonshine transcription pipeline
-and sends it to Compliance Goblin V3 on Cortex for PI and AECP
-redaction analysis.
+Receives the raw transcript text from the Moonshine transcription pipeline
+AFTER Field Extraction and Summary have already run, and sends it to
+Compliance Goblin V3 on Cortex for PI and AECP redaction analysis.
+
+This is the FINAL step in the agent pipeline. Field Extraction and Summary
+run first (in parallel) directly on the raw transcript; Compliance runs
+last as a safety gate before the record is shown for approval / sent to CRM.
 
 Pipeline position:
-    Moonshine transcript → complianceLayer.py → fieldExtraction.py
+    Moonshine transcript → Field Extraction + Summary (parallel) → complianceLayer.py (final gate)
 
 Usage:
     from complianceLayer import ComplianceLayer
@@ -44,13 +48,17 @@ log = logging.getLogger(__name__)
 # Cortex API Configuration — Compliance Goblin V3
 # ─────────────────────────────────────────────────────────────────────────────
 
-# CORTEX_BASE_URL is the root URL for Lilly's Cortex platform
-# All agent endpoints are appended to this base
-CORTEX_BASE_URL = "https://gateway-intranet.apim-dev.lilly.com"
+# CORTEX_BASE_URL is the root URL for Lilly's Cortex platform via APIM.
+# Using the same public gateway as fieldExtraction.py / summaryField.py for
+# consistency — confirm with the Cortex/APIM team if Compliance specifically
+# needs to route over the intranet gateway instead.
+CORTEX_BASE_URL = "https://gateway-intranet.apim.lilly.com/cortex"
 
-# COMPLIANCE_GOBLIN_ENDPOINT is the path for the Compliance Goblin V3 agent
-# POST requests here ask the agent to analyze a transcript for PI and AECP
-COMPLIANCE_GOBLIN_ENDPOINT = "/api/model/ask/compliance-goblin-v3"
+# COMPLIANCE_GOBLIN_ENDPOINT is the path for the Compliance Goblin V3 agent.
+# NOTE: the correct APIM path includes the "/cortex" segment —
+#   https://gateway.apim-dev.lilly.com/cortex/model/ask/compliance-goblin-v2
+# The previous "/api/model/ask/..." path (missing "/cortex") was returning 404s.
+COMPLIANCE_GOBLIN_ENDPOINT = "/api/model/ask/compliance-goblin-v2"
 
 # COMPLIANCE_GOBLIN_URL is the full URL used in every POST request
 COMPLIANCE_GOBLIN_URL = CORTEX_BASE_URL + COMPLIANCE_GOBLIN_ENDPOINT
@@ -77,9 +85,10 @@ REQUEST_TIMEOUT_SECONDS = 90
 
 class ComplianceLayer:
     """
-    Sends transcript text to Compliance Goblin V3 on Cortex.
-    Returns a cleaned redacted transcript and compliance status
-    for downstream processing by fieldExtraction.py.
+    Sends the raw transcript to Compliance Goblin V3 on Cortex as the FINAL
+    pipeline step, after Field Extraction and Summary have already produced
+    their results. Returns a cleaned/redacted transcript plus compliance
+    status used to gate whether the record is safe to store/submit.
     """
 
     def __init__(self):
@@ -101,15 +110,17 @@ class ComplianceLayer:
 
     def analyze(self, transcript: str) -> dict:
         """
-        Sends transcript to Compliance Goblin V3 and returns a result dict.
+        Sends the raw transcript to Compliance Goblin V3 and returns a result dict.
 
-        Called by the transcription pipeline after Moonshine decodes audio.
-        The cleaned_transcript in the result is passed to fieldExtraction.py.
+        Called by the pipeline LAST — after Field Extraction and Summary have
+        already returned their results on the same raw transcript. This is the
+        final compliance gate: if the status comes back CRITICAL, the session
+        is halted and the record should not proceed to CRM without manual review.
 
         Parameters
         ----------
         transcript : str
-            Decoded text from the Moonshine pipeline — no raw audio
+            Decoded raw text from the Moonshine pipeline
 
         Returns
         -------
@@ -151,7 +162,7 @@ class ComplianceLayer:
         POSTs transcript to Compliance Goblin V3 using the Cortex streaming API.
 
         Uses the exact API pattern from the Pulse.AI specification:
-            POST /api/model/ask/compliance-goblin-v3
+            POST /cortex/model/ask/compliance-goblin-v3
             params: stream=true, no_summary=false,
                     background_job=false, workflow_timeout=1
             form_data: q=<transcript>
@@ -163,7 +174,7 @@ class ComplianceLayer:
         # Build form data — "q" is the field name Compliance Goblin V3 expects
         form_data = {"q": transcript}
 
-        # Obtain a valid Bearer token from Azure AD via cortex_auth.py
+        # Obtain a valid Bearer token from Azure AD via cortexAuthenticator.py
         # get_bearer_token() caches the token and auto-refreshes before expiry
         try:
             bearer_token = get_bearer_token()
@@ -172,8 +183,6 @@ class ComplianceLayer:
             return None
 
         # Build the Authorization header using the Bearer token
-        # This is the token obtained by exchanging Tenant ID, Client ID,
-        # and Secret Value with Azure AD — NOT the Secret ID
         headers = {
             "accept": "application/json",
             "Authorization": f"Bearer {bearer_token}",
@@ -183,8 +192,6 @@ class ComplianceLayer:
 
         try:
             # Send streaming POST request to Compliance Goblin V3
-            # stream=True tells requests to read the body line by line
-            # rather than downloading the entire response at once
             response = requests.post(
                 COMPLIANCE_GOBLIN_URL,       # Compliance Goblin V3 endpoint
                 params=CORTEX_PARAMS,        # stream=true, workflow_timeout=1 etc.
@@ -194,33 +201,27 @@ class ComplianceLayer:
                 timeout=REQUEST_TIMEOUT_SECONDS,  # abort if no response in 90s
             )
 
-            # Raise an exception for 4xx/5xx HTTP errors (e.g. 401 Unauthorized)
+            # Raise an exception for 4xx/5xx HTTP errors (e.g. 401/403/404)
             response.raise_for_status()
 
             log.info(f"{chunk_id}: Streaming Compliance Goblin V3 response")
 
-            # Print visual separator so streamed output is easy to read
             print(f"\n{'='*60}")
             print(f"COMPLIANCE GOBLIN V3 — {chunk_id}")
             print(f"{'='*60}")
 
-            # accumulated_lines stores each decoded line as it arrives
             accumulated_lines = []
 
-            # iter_lines() reads the streaming response body one line at a time
-            # Each line arrives as bytes — decoded to UTF-8 string
             for line in response.iter_lines():
                 if line:
-                    # Decode bytes to string for display and accumulation
                     decoded = line.decode("utf-8")
-                    print(decoded)               # real-time display
+                    print(decoded)
                     accumulated_lines.append(decoded)
 
             print(f"{'='*60}\n")
 
             log.info(f"{chunk_id}: Received {len(accumulated_lines)} lines")
 
-            # Join all lines into one complete response string for parsing
             return "\n".join(accumulated_lines)
 
         except requests.exceptions.ConnectionError as e:
@@ -233,6 +234,10 @@ class ComplianceLayer:
             log.error(f"{chunk_id}: HTTP {response.status_code} — {e}")
             if response.status_code == 401:
                 log.error(f"{chunk_id}: 401 Unauthorized — check Azure AD credentials")
+            elif response.status_code == 403:
+                log.error(f"{chunk_id}: 403 Forbidden — check client_id is on Cortex access list and is an owner of this agent config")
+            elif response.status_code == 404:
+                log.error(f"{chunk_id}: 404 Not Found — check APIM URL path/environment: {COMPLIANCE_GOBLIN_URL}")
             return None
         except requests.exceptions.RequestException as e:
             log.error(f"{chunk_id}: Request error — {e}")
@@ -247,7 +252,6 @@ class ComplianceLayer:
 
         upper = raw.upper()
 
-        # Parse compliance status — check in severity order so CRITICAL wins
         if "CRITICAL" in upper:
             status = "CRITICAL"
         elif "WARNING" in upper:
@@ -257,16 +261,14 @@ class ComplianceLayer:
         elif "CLEAN" in upper:
             status = "CLEAN"
         else:
-            status = "WARNING"    # default to WARNING if format is unexpected
+            status = "WARNING"
             log.warning(f"{chunk_id}: Could not parse status — defaulting to WARNING")
 
-        # Parse DLO escalation — True if YES appears after the label
         dlo = (
             "DLO ESCALATION REQUIRED: YES" in upper or
             'DLO ESCALATION REQUIRED: "YES"' in upper
         )
 
-        # Parse recommended action — most restrictive wins
         if "HALT" in upper:
             action = "HALT"
         elif "REVIEW" in upper:
@@ -274,7 +276,6 @@ class ComplianceLayer:
         else:
             action = "PROCEED"
 
-        # Extract cleaned transcript between section labels
         cleaned = ""
         if "CLEANED TRANSCRIPT:" in raw:
             start = raw.find("CLEANED TRANSCRIPT:") + len("CLEANED TRANSCRIPT:")
@@ -282,7 +283,6 @@ class ComplianceLayer:
             if end > start:
                 cleaned = raw[start:end].strip().strip('"')
 
-        # Extract violation lines — each uses pipe separator
         violations = []
         if "VIOLATIONS DETECTED:" in raw:
             start = raw.find("VIOLATIONS DETECTED:") + len("VIOLATIONS DETECTED:")
@@ -309,12 +309,11 @@ class ComplianceLayer:
 
         status = result["compliance_status"]
 
-        # Store cleaned transcript chunk for later session summary
         if result["cleaned_transcript"]:
             self.cleaned_chunks.append(result["cleaned_transcript"])
 
         if status == "CLEAN":
-            log.info(f"{chunk_id}: CLEAN — safe for field extraction")
+            log.info(f"{chunk_id}: CLEAN")
         elif status == "ADVISORY":
             log.info(f"{chunk_id}: ADVISORY — {result['violations']}")
         elif status == "WARNING":
@@ -374,7 +373,6 @@ if __name__ == "__main__":
 
     print("\n=== Pulse.AI — Compliance Layer Standalone Test ===\n")
 
-    # Load transcript from file argument or use built-in PI-Red test
     if len(sys.argv) > 1:
         transcript_text = Path(sys.argv[1]).read_text(encoding="utf-8").strip()
         log.info(f"Loaded: {sys.argv[1]}")
@@ -400,4 +398,3 @@ if __name__ == "__main__":
     for v in result["violations"]:
         print(f"  - {v}")
     print(f"\nCleaned Transcript:\n{result['cleaned_transcript'] or '(none returned)'}")
-

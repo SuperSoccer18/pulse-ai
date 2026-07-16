@@ -11,7 +11,7 @@ import requests
 
 
 # ── Config ────────────────────────────────────────────────────────────────
-BASE_URL = "https://gateway.apim-dev.lilly.com"
+BASE_URL = "https://gateway-intranet.apim.lilly.com/cortex"
 PARAMS   = {
     "stream":          "false",
     "no_summary":      "false",
@@ -44,7 +44,7 @@ print("TEST 1 — Compliance Goblin V3")
 print("=" * 50)
 
 response = requests.post(
-    BASE_URL + "/api/model/ask/compliance-goblin-v3",
+    BASE_URL + "/cortex/model/ask/compliance-goblin-v3",
     params=PARAMS,
     data={"q": CLEAN_TRANSCRIPT},
     headers=HEADERS,
@@ -60,7 +60,7 @@ print("TEST 2 — Field Extraction Gnome")
 print("=" * 50)
 
 response = requests.post(
-    BASE_URL + "/api/model/ask/field-extraction-gnome",
+    BASE_URL + "/cortex/model/ask/field-extraction-gnome",
     params=PARAMS,
     data={"q": CLEAN_TRANSCRIPT},
     headers=HEADERS,
@@ -76,7 +76,7 @@ print("TEST 3 — Summary Fairy")
 print("=" * 50)
 
 response = requests.post(
-    BASE_URL + "/api/model/ask/summary-fairy",
+    BASE_URL + "/cortex/model/ask/summary-fairy",
     params=PARAMS,
     data={"q": CLEAN_TRANSCRIPT},
     headers=HEADERS,
