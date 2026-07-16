@@ -28,7 +28,11 @@ import sys
 
 # get_bearer_token obtains the Azure AD OAuth2 Bearer token for Cortex
 # It uses Tenant ID, Client ID, and Secret Value from cortexAuthenticator.py
-from cortexAuthenticator import get_bearer_token
+# TODO: cortexAuthenticator.py was removed from the repo — restore it to
+# re-enable Compliance Goblin calls. Commented out for now so the rest of
+# the app (e.g. server.py) can still boot; _call_api() below already
+# catches the resulting NameError and degrades to a WARNING/REVIEW result.
+# from cortexAuthenticator import get_bearer_token
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Logging

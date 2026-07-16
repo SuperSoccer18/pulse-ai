@@ -80,8 +80,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .tag-green{background:var(--sage-t);color:var(--green);border:1px solid var(--sage)}
 .btn-primary{background:var(--red);color:var(--white);border:none;border-radius:8px;padding:8px 16px;font-size:12px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.1s}
 .btn-primary:active{opacity:0.82}
-.fab{position:absolute;bottom:20px;right:18px;background:var(--red);color:var(--white);border:none;border-radius:28px;padding:13px 18px;font-size:13px;font-weight:700;cursor:pointer;box-shadow:0 4px 18px rgba(211,23,16,0.42);display:flex;align-items:center;gap:8px;font-family:var(--font)}
-.fab:active{opacity:0.85;transform:scale(0.97)}
 
 /* ── RECORDING SCREEN ── */
 .top-bar{background:var(--white);padding:12px 20px;display:flex;align-items:center;gap:14px;border-bottom:1px solid var(--stone);flex-shrink:0}
@@ -110,6 +108,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .priv-badge{margin-top:26px;background:var(--stone-t);border-radius:10px;padding:11px 18px;border:1px solid var(--stone);text-align:center;max-width:280px}
 .priv-badge h4{font-size:11px;color:var(--blue);font-weight:600}
 .priv-badge p{font-size:10px;color:var(--blue);opacity:0.75;margin-top:2px;font-weight:400}
+.purge-strip-label{font-size:11px;color:var(--gray);margin-top:14px;font-weight:400;text-align:center;font-variant-numeric:tabular-nums}
 .tip-box{margin:0 16px 16px;background:var(--stone-t);border-radius:10px;padding:11px 15px;border:1px solid var(--stone);flex-shrink:0}
 .tip-box h4{font-size:11px;color:var(--black);font-weight:600;margin-bottom:4px}
 .tip-box p{font-size:11px;color:var(--gray);line-height:1.5;font-weight:400}
@@ -155,6 +154,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
 .val-rose{background:var(--rose);color:var(--brown)}
 .val-stone{background:var(--stone-t);color:var(--black);border:1px solid var(--stone)}
 .val-cream{background:var(--cream);color:var(--black)}
+.field-flagged{outline:2px solid var(--coral) !important;box-shadow:0 0 0 3px rgba(253,148,133,0.25)}
 .review-foot{padding:12px 16px;background:var(--white);border-top:1px solid var(--stone);display:flex;gap:10px;flex-shrink:0}
 .btn-outline{flex:1;background:var(--white);color:var(--red);border:1.5px solid var(--red);border-radius:10px;padding:13px;font-size:14px;font-weight:600;cursor:pointer;font-family:var(--font);transition:opacity 0.1s}
 .btn-outline:active{opacity:0.75}
@@ -237,11 +237,6 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
           <!-- populated by fetchCalls() -->
           <div style="text-align:center;padding:32px;color:var(--gray);font-size:13px">Loading calls…</div>
         </div>
-        <div style="height:80px"></div>
-        <button class="fab">
-          <svg width="13" height="13" viewBox="0 0 13 13" fill="none"><line x1="6.5" y1="1" x2="6.5" y2="12" stroke="white" stroke-width="2" stroke-linecap="round"/><line x1="1" y1="6.5" x2="12" y2="6.5" stroke="white" stroke-width="2" stroke-linecap="round"/></svg>
-          New call
-        </button>
       </div>
     </div>
 
@@ -285,6 +280,7 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
           <h4>Audio processed on-device only</h4>
           <p>Raw audio never stored — encoded to abstract states in &lt;0.6s windows</p>
         </div>
+        <div class="purge-strip-label" id="purge-strip-label">Processing audio live — no data saved</div>
       </div>
       <div class="err-banner" id="rec-error"></div>
       <div class="tip-box">
@@ -333,27 +329,22 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
         <p id="rev-hcp-label">Dr. Sarah Patel · Endocrinology</p>
       </div>
       <div class="review-body scroll" style="flex:1">
-        <!-- Compliance status banner — swapped by JS -->
+        <!-- Populated by the approve-btn handler when a submission is
+             held for compliance — see buildComplianceHoldBanner() and
+             resolveFieldPathToElement() in the script below. Empty
+             otherwise (compliance runs at submit-time, not on load). -->
         <div id="rev-compliance-banner"></div>
         <div class="f">
           <div class="lbl">HCP</div>
           <div class="val val-rose" id="rev-hcp-name-display">Dr. Sarah Patel</div>
         </div>
         <div class="f">
-          <div class="lbl">Account / Location</div>
+          <div class="lbl">Location</div>
           <div class="val val-stone" id="rev-account">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Address</div>
-          <div class="val val-stone" id="rev-address">—</div>
         </div>
         <div class="f">
           <div class="lbl">Call date &amp; time</div>
           <div class="val val-stone" id="rev-datetime">—</div>
-        </div>
-        <div class="f">
-          <div class="lbl">Record type</div>
-          <div class="val val-stone" id="rev-record-type">—</div>
         </div>
         <div class="f">
           <div class="lbl">Engagement method</div>
@@ -368,12 +359,20 @@ body{font-family:var(--font);background:#C8C4BE;min-height:100vh;display:flex;ju
           <div class="products-list" id="rev-products"></div>
         </div>
         <div class="f">
-          <div class="lbl">Interaction notes</div>
-          <div class="val val-stone" id="rev-notes" style="white-space:pre-wrap;min-height:48px">—</div>
+          <div class="lbl">Call summary</div>
+          <div class="val val-stone" id="rev-summary" style="white-space:pre-wrap;min-height:48px">—</div>
         </div>
         <div class="f">
-          <div class="lbl">Call transcript</div>
-          <div class="val val-cream" id="rev-transcript" style="white-space:pre-wrap;min-height:80px;max-height:180px;overflow-y:auto">—</div>
+          <div class="lbl">Next steps</div>
+          <div class="val val-stone" id="rev-next-steps" style="white-space:pre-wrap">—</div>
+        </div>
+        <div class="f">
+          <div class="lbl">Competitor mentions</div>
+          <div class="products-list" id="rev-competitors"></div>
+        </div>
+        <div class="f">
+          <div class="lbl">Terminology corrections</div>
+          <div class="products-list" id="rev-corrections"></div>
         </div>
         <div style="height:16px"></div>
       </div>
@@ -559,6 +558,7 @@ function openCall(callId) {
   document.getElementById('rec-error').classList.remove('visible');
   document.getElementById('rec-error').textContent = '';
   clearInterval(recTimerInt);
+  resetChunkStrip();
 
   show('recording');
 }
@@ -572,6 +572,7 @@ let micStream        = null;
 let ws               = null;
 let isRecording      = false;
 let transcriptReady  = false;   // set true once server sends transcript; guards onclose
+let workletDoneResolve = null;  // resolves once the worklet's final flushed frame is sent
 
 document.getElementById('rec-btn').addEventListener('click', () => {
   if (!isRecording) {
@@ -586,6 +587,7 @@ async function startRecording() {
   errBanner.classList.remove('visible');
   errBanner.textContent = '';
   transcriptReady = false;
+  resetChunkStrip();
 
   try {
     micStream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
@@ -644,7 +646,15 @@ async function startRecording() {
     if (type === 'pcm' && ws && ws.readyState === WebSocket.OPEN) {
       ws.send(buffer);    // raw float32 binary frame
     }
-    // 'done' message: worklet has flushed — we've already sent 'stop' via ws
+    if (type === 'done' && workletDoneResolve) {
+      // Worklet has flushed its final partial frame and sent it above —
+      // now it's safe to tell the server we're done. Signaling this via
+      // an explicit handshake (not a fixed setTimeout) avoids a race where
+      // 'stop' reaches the server before the last ~100ms of speech does,
+      // which was silently truncating the end of every recording.
+      workletDoneResolve();
+      workletDoneResolve = null;
+    }
   };
 
   source.connect(workletNode);
@@ -666,21 +676,28 @@ async function startRecording() {
   }, 1000);
 }
 
-function stopRecording() {
+async function stopRecording() {
   if (!isRecording) return;
   isRecording = false;
   clearInterval(recTimerInt);
 
-  // Signal worklet to flush remaining PCM, then tell server we're done
+  // Signal worklet to flush remaining PCM, then WAIT for its 'done' ack
+  // before telling the server we're finished. A fixed setTimeout here
+  // previously raced the worklet's final flushed frame — 'stop' could
+  // reach the server before the last ~100ms of speech did, silently
+  // truncating the end of every recording. A 500ms safety-net timeout
+  // covers the case where 'done' never arrives (e.g. worklet already
+  // torn down) so we don't hang forever.
   if (workletNode) {
+    const donePromise = new Promise(resolve => { workletDoneResolve = resolve; });
     workletNode.port.postMessage('stop');
-    // Give worklet a tick to flush before sending 'stop' to server
-    setTimeout(() => {
-      if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
-    }, 80);
-  } else {
-    if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
+    await Promise.race([
+      donePromise,
+      new Promise(resolve => setTimeout(resolve, 500)),
+    ]);
+    workletDoneResolve = null;
   }
+  if (ws && ws.readyState === WebSocket.OPEN) ws.send('stop');
 
   // Transition to processing screen immediately; transcript arrives async
   show('processing');
@@ -712,6 +729,21 @@ function showRecError(msg) {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Purge label — live text proof of ephemeral processing on the recording
+// screen. The chunk count ticks up in real time off actual chunk_encoded
+// events, and each one fires only AFTER server.py has already run
+// `del chunk; gc.collect()` on that chunk's raw audio (see encode_chunk()
+// in transcribe_streaming_experiment.py) — so "purged" is never simulated,
+// it's reporting something that already happened before the message arrived.
+// ─────────────────────────────────────────────────────────────────────────────
+
+function resetChunkStrip() {
+  chunksEncoded = 0;
+  const label = document.getElementById('purge-strip-label');
+  if (label) label.textContent = 'Processing audio live — no data saved';
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // WebSocket message handler
 // ─────────────────────────────────────────────────────────────────────────────
 let chunksEncoded = 0;
@@ -721,6 +753,8 @@ function handleWsMessage(event) {
 
   if (msg.type === 'chunk_encoded') {
     chunksEncoded = msg.index;
+    const label = document.getElementById('purge-strip-label');
+    if (label) label.textContent = `Chunk ${chunksEncoded} encoded & purged`;
     const pt0 = document.getElementById('pt0');
     if (pt0) pt0.textContent = `Encoding audio chunks… (${chunksEncoded} encoded)`;
   }
@@ -728,25 +762,21 @@ function handleWsMessage(event) {
   if (msg.type === 'decoding') {
     clearInterval(procAnimInt);
     while (procStep <= 1) advanceProcStep();
+    const pt0 = document.getElementById('pt0');
+    if (pt0) pt0.textContent = `All ${chunksEncoded} chunks purged — decoding transcript now…`;
     document.getElementById('proc-sub').textContent = 'Decoding transcript…';
   }
 
   if (msg.type === 'pipeline_running') {
-    // Transcript decoded — advance animation to extraction/summary steps
+    // Transcript decoded — advance animation to correction/extraction steps
     while (procStep <= 2) advanceProcStep();
-    document.getElementById('proc-sub').textContent = 'Running compliance & extraction…';
+    document.getElementById('proc-sub').textContent = 'Correcting terminology & extracting fields…';
   }
 
   if (msg.type === 'pipeline_complete') {
     transcriptReady = true;
     teardownAudio();
     goReview(msg);
-  }
-
-  if (msg.type === 'pipeline_halted') {
-    transcriptReady = true;
-    teardownAudio();
-    goReviewHalted(msg);
   }
 
   if (msg.type === 'error') {
@@ -778,7 +808,10 @@ function runProcessingAnimation() {
     pi.innerHTML = '';
     ps.querySelector('.step-text').className = 'step-text dim-t';
   }
-  chunksEncoded = 0;
+  // NOTE: chunksEncoded is intentionally left as-is here — it holds the
+  // real count from the recording that just ended, and the 'decoding'
+  // handler in handleWsMessage() reads it to build the closing tally.
+  // It gets reset for the *next* recording by resetChunkStrip().
   procStep = 0;
 
   // Advance first step immediately
@@ -862,68 +895,202 @@ function goReview(msg) {
   currentPipelineResult = msg;
   currentTranscript = msg.transcript || '(no speech detected)';
 
-  const ext = msg.extraction || {};
-  const compliance = msg.compliance || {};
+  // Reset edit state from any prior review — otherwise a stale "editing"
+  // flag/outline could carry over into this fresh render.
+  reviewEditing = false;
+  document.getElementById('edit-btn').textContent = 'Edit';
+
+  // Clear any compliance hold banner/highlights from a prior submit attempt
+  // on a different recording — this is a fresh review, nothing has been
+  // submitted yet for it.
+  document.getElementById('rev-compliance-banner').innerHTML = '';
+  clearFieldFlags();
+  document.getElementById('approve-btn').disabled = false;
+  document.getElementById('approve-btn').textContent = 'Approve & submit';
+
+  const ext        = msg.extraction  || {};
+  const correction = msg.correction  || {};
+  const meta       = ext.call_metadata || {};
 
   document.getElementById('rev-hcp-label').textContent        = `${currentCall.hcp_name} · ${currentCall.specialty}`;
   document.getElementById('rev-hcp-name-display').textContent = currentCall.hcp_name;
-  document.getElementById('rev-compliance-banner').innerHTML  = buildComplianceBanner(compliance);
+  // Compliance banner intentionally left empty here — that gate now runs
+  // at submit-time (see approve-btn handler), not on this review screen.
 
-  // Account: prefer extracted account, fall back to location, then call data
-  const account = ext.account || ext.location || currentCall.location || '—';
-  document.getElementById('rev-account').textContent          = account;
-  document.getElementById('rev-address').textContent          = ext.address || '—';
-  document.getElementById('rev-datetime').textContent         = ext.call_datetime || '—';
-  document.getElementById('rev-record-type').textContent      = ext.record_type || '—';
-  document.getElementById('rev-engagement-method').textContent = ext.engagement_method || '—';
-  document.getElementById('rev-virtual-tool').textContent     = ext.virtual_engagement_tool || '—';
+  document.getElementById('rev-account').textContent           = meta.location || currentCall.location || '—';
+  document.getElementById('rev-datetime').textContent          = meta.call_datetime || '—';
+  document.getElementById('rev-engagement-method').textContent = meta.engagement_method || '—';
+  document.getElementById('rev-virtual-tool').textContent      = meta.virtual_engagement_tool || '—';
 
-  // Products: render each as a card with indication as subfield
+  // Products: name/indication/samples/priority, one card per product
   const productsEl = document.getElementById('rev-products');
-  if (ext.products_discussed && ext.products_discussed.length > 0) {
-    productsEl.innerHTML = ext.products_discussed.map(p => `
+  if (ext.products && ext.products.length > 0) {
+    productsEl.innerHTML = ext.products.map(p => `
       <div class="product-item">
-        <div class="product-name">${esc(p.product || '—')}</div>
+        <div class="product-name">${esc(p.name || '—')}</div>
         ${p.indication ? `<div class="product-indication">${esc(p.indication)}</div>` : ''}
+        <div class="product-indication">Samples given: ${p.samples_given ?? 0}${p.detail_priority ? ` · Priority ${p.detail_priority}` : ''}</div>
       </div>`).join('');
   } else {
     productsEl.innerHTML = `<div class="product-item"><div class="product-name">${esc(currentCall.product || '—')}</div></div>`;
   }
-  document.getElementById('rev-notes').textContent     = ext.interaction_notes || '—';
-  document.getElementById('rev-transcript').textContent = currentTranscript;
 
-  // Disable submit if compliance HALT (shouldn't reach here, but belt-and-braces)
-  const isHalt = compliance.recommended_action === 'HALT';
-  document.getElementById('approve-btn').disabled = isHalt;
+  document.getElementById('rev-summary').textContent    = ext.summary || '—';
+  document.getElementById('rev-next-steps').textContent = ext.next_steps || '—';
 
-  show('review');
-}
+  const competitorsEl = document.getElementById('rev-competitors');
+  if (ext.competitor_mentions && ext.competitor_mentions.length > 0) {
+    competitorsEl.innerHTML = ext.competitor_mentions.map(c => `
+      <div class="product-item">
+        <div class="product-name">${esc(c.competitor_product || '—')}</div>
+        ${c.context ? `<div class="product-indication">${esc(c.context)}</div>` : ''}
+      </div>`).join('');
+  } else {
+    competitorsEl.innerHTML = `<div class="product-item"><div class="product-name">None mentioned</div></div>`;
+  }
 
-function goReviewHalted(msg) {
-  finishProcessingAnimation();
-  currentPipelineResult = msg;
-  currentTranscript = '';
+  const correctionsEl = document.getElementById('rev-corrections');
+  if (correction.changes && correction.changes.length > 0) {
+    correctionsEl.innerHTML = correction.changes.map(c => `
+      <div class="product-item">
+        <div class="product-name">${esc(c.original || '—')} → ${esc(c.corrected || '—')}</div>
+        ${c.reference_match ? `<div class="product-indication">Matched: ${esc(c.reference_match)} (${esc(c.confidence || '—')})</div>` : ''}
+      </div>`).join('');
+  } else {
+    correctionsEl.innerHTML = `<div class="product-item"><div class="product-name">No corrections needed</div></div>`;
+  }
 
-  document.getElementById('rev-hcp-label').textContent        = `${currentCall.hcp_name} · ${currentCall.specialty}`;
-  document.getElementById('rev-hcp-name-display').textContent = currentCall.hcp_name;
-  document.getElementById('rev-compliance-banner').innerHTML  = buildComplianceBanner(msg.compliance);
-
-  document.getElementById('rev-account').textContent   = '—';
-  document.getElementById('rev-address').textContent   = '—';
-  document.getElementById('rev-datetime').textContent  = '—';
-  document.getElementById('rev-record-type').textContent       = '—';
-  document.getElementById('rev-engagement-method').textContent = '—';
-  document.getElementById('rev-virtual-tool').textContent      = '—';
-  document.getElementById('rev-products').innerHTML    = '';
-  document.getElementById('rev-notes').textContent     = '—';
-  document.getElementById('rev-transcript').textContent = 'Recording withheld — compliance halt';
-
-  document.getElementById('approve-btn').disabled = true;
+  document.getElementById('approve-btn').disabled = false;
 
   show('review');
 }
 
-document.getElementById('approve-btn').addEventListener('click', () => {
+// ─────────────────────────────────────────────────────────────────────────────
+// Submit-time compliance gate → Veeva write (POST /api/submit-call)
+// ─────────────────────────────────────────────────────────────────────────────
+
+// Reconstructs an extraction-shaped object from the CURRENT DOM — captures
+// whatever the rep edited via contentEditable (edits only ever change
+// visible text; they're never written back into currentPipelineResult).
+// Products/competitor cards are read-only in this pass (per the existing
+// edit-btn design), so those pass through from the original extraction as-is.
+function serializeReviewFields() {
+  const ext = (currentPipelineResult && currentPipelineResult.extraction) || {};
+  return {
+    call_metadata: {
+      location: document.getElementById('rev-account').textContent.trim(),
+      call_datetime: document.getElementById('rev-datetime').textContent.trim(),
+      engagement_method: document.getElementById('rev-engagement-method').textContent.trim(),
+      virtual_engagement_tool: document.getElementById('rev-virtual-tool').textContent.trim(),
+    },
+    summary: document.getElementById('rev-summary').textContent.trim(),
+    next_steps: document.getElementById('rev-next-steps').textContent.trim(),
+    products: ext.products || [],
+    competitor_mentions: ext.competitor_mentions || [],
+    confidence: ext.confidence,
+  };
+}
+
+// Maps a compliance-gate field_path (e.g. "call_metadata.location",
+// "products[0].name") back to the DOM element it corresponds to, so a
+// violation can be visually highlighted, not just described in the banner.
+function resolveFieldPathToElement(fieldPath) {
+  const directMap = {
+    'call_metadata.location': 'rev-account',
+    'call_metadata.call_datetime': 'rev-datetime',
+    'call_metadata.engagement_method': 'rev-engagement-method',
+    'call_metadata.virtual_engagement_tool': 'rev-virtual-tool',
+    'summary': 'rev-summary',
+    'next_steps': 'rev-next-steps',
+  };
+  if (directMap[fieldPath]) return document.getElementById(directMap[fieldPath]);
+
+  // products[N].* / competitor_mentions[N].* — highlight the whole card,
+  // since sub-fields aren't individually addressable and aren't editable
+  // in this pass anyway.
+  const arrMatch = fieldPath.match(/^(products|competitor_mentions)\[(\d+)\]/);
+  if (arrMatch) {
+    const containerId = arrMatch[1] === 'products' ? 'rev-products' : 'rev-competitors';
+    const container = document.getElementById(containerId);
+    return container ? container.children[Number(arrMatch[2])] : null;
+  }
+  return null;   // unmatched path — still shown in the banner text, just no highlight
+}
+
+function clearFieldFlags() {
+  document.querySelectorAll('#s-review .field-flagged').forEach(el => el.classList.remove('field-flagged'));
+}
+
+// Distinct from buildComplianceBanner() above, which expects the OLD
+// transcript-level compliance shape (compliance_status/violations as plain
+// strings) — this renders the NEW compliance-gate shape returned by
+// check_compliance() on the server (overall_status/field_violations[] with
+// .explanation). Kept separate rather than overloading one function with
+// two incompatible input shapes.
+function buildComplianceHoldBanner(compliance) {
+  if (compliance.error) {
+    return `<div class="halt-banner">
+      <div class="halt-icon">🛑</div>
+      <div><h4>Compliance check unavailable</h4><p>Couldn't reach the compliance gate — submission held rather than risk an unchecked write. Try again in a moment.</p></div>
+    </div>`;
+  }
+  const violations = compliance.field_violations || [];
+  const items = violations.map(v => `${esc(v.field_path)}: ${esc(v.explanation || v.violation_type || '')}`).join(' · ');
+  return `<div class="halt-banner">
+    <div class="halt-icon">🛑</div>
+    <div><h4>Compliance issue — fix before resubmitting</h4><p>${items || 'One or more fields were flagged.'}</p></div>
+  </div>`;
+}
+
+document.getElementById('approve-btn').addEventListener('click', async () => {
+  const approveBtn = document.getElementById('approve-btn');
+  approveBtn.disabled = true;
+  approveBtn.textContent = 'Submitting…';
+  document.getElementById('rev-compliance-banner').innerHTML = '';
+  clearFieldFlags();
+
+  const extraction = serializeReviewFields();
+
+  let resp, result;
+  try {
+    resp = await fetch('/api/submit-call', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ call_id: currentCall.id, extraction }),
+    });
+    result = await resp.json();
+  } catch (e) {
+    approveBtn.disabled = false;
+    approveBtn.textContent = 'Approve & submit';
+    document.getElementById('rev-compliance-banner').innerHTML = `<div class="halt-banner">
+      <div class="halt-icon">🛑</div>
+      <div><h4>Couldn't reach the server</h4><p>${esc(e.message)} — check your connection and try again.</p></div>
+    </div>`;
+    return;
+  }
+
+  if (result.status === 'held') {
+    approveBtn.disabled = false;
+    approveBtn.textContent = 'Approve & submit';
+    document.getElementById('rev-compliance-banner').innerHTML = buildComplianceHoldBanner(result.compliance || {});
+    (result.compliance && result.compliance.field_violations || []).forEach(v => {
+      const el = resolveFieldPathToElement(v.field_path);
+      if (el) el.classList.add('field-flagged');
+    });
+    return;   // stay on the review screen — do not advance
+  }
+
+  if (result.status === 'error') {
+    approveBtn.disabled = false;
+    approveBtn.textContent = 'Approve & submit';
+    document.getElementById('rev-compliance-banner').innerHTML = `<div class="halt-banner">
+      <div class="halt-icon">🛑</div>
+      <div><h4>Couldn't write to Veeva</h4><p>${esc(result.error || 'Unknown error')} — your edits are still on this screen, try submitting again.</p></div>
+    </div>`;
+    return;
+  }
+
+  // status === 'submitted' — proceed to confirmation, same as before
   const wordCount = currentTranscript.trim().split(/\s+/).filter(Boolean).length;
   const mins  = Math.floor(recSecs / 60);
   const secs  = recSecs % 60;
@@ -931,10 +1098,8 @@ document.getElementById('approve-btn').addEventListener('click', () => {
     ? `${mins > 0 ? mins + 'm ' : ''}${secs}s`
     : '—';
 
-  // Derive product display from extraction result, fall back to call data
-  const ext = (currentPipelineResult && currentPipelineResult.extraction) || {};
-  const productDisplay = ext.products_discussed && ext.products_discussed.length > 0
-    ? ext.products_discussed.map(p => p.product).join(', ')
+  const productDisplay = extraction.products && extraction.products.length > 0
+    ? extraction.products.map(p => p.name).join(', ')
     : currentCall.product || '—';
 
   document.getElementById('conf-txt').textContent      = `Call report for ${currentCall.hcp_name} has been logged in Veeva CRM`;
@@ -943,27 +1108,36 @@ document.getElementById('approve-btn').addEventListener('click', () => {
   document.getElementById('conf-duration').textContent = durStr;
   document.getElementById('conf-words').textContent    = wordCount + ' words';
 
-  // Mark call as done in local state
+  // Mark call as done in local state — the real status now also persists
+  // in Veeva (Status_vod__c -> Submitted_vod), so the next /api/calls
+  // fetch will reflect this independently of local state too.
   const call = allCalls.find(c => c.id === currentCall.id);
   if (call) call.status = 'done';
 
   show('confirmed');
 });
 
+// Single toggle handler (not addEventListener + .onclick stacked together —
+// that bug left two competing handlers armed after the first click, which
+// made editing flicker on/off unpredictably instead of sticking).
+let reviewEditing = false;
 document.getElementById('edit-btn').addEventListener('click', () => {
-  // For now: make the transcript editable inline
-  const el = document.getElementById('rev-transcript');
-  el.contentEditable = 'true';
-  el.focus();
-  el.style.outline = '2px solid var(--red)';
-  document.getElementById('edit-btn').textContent = 'Done';
-  document.getElementById('edit-btn').onclick = () => {
-    el.contentEditable = 'false';
-    el.style.outline = '';
-    currentTranscript = el.textContent;
-    document.getElementById('edit-btn').textContent = 'Edit';
-    document.getElementById('edit-btn').onclick = null;
-  };
+  const editBtn = document.getElementById('edit-btn');
+  // Every .val field on the review screen becomes directly editable —
+  // products/competitor/correction cards (.products-list) stay read-only
+  // for this pass (dynamic add/remove list editing is a separate piece of work).
+  // Note: the transcript itself is no longer shown on this screen (removed
+  // per user request) — currentTranscript is still set from msg.transcript
+  // in goReview() and used for the word-count stat on the confirmed screen.
+  const editableEls = document.querySelectorAll('#s-review .val');
+
+  reviewEditing = !reviewEditing;
+  editableEls.forEach(el => {
+    el.contentEditable = reviewEditing ? 'true' : 'false';
+    el.style.outline = reviewEditing ? '2px solid var(--red)' : '';
+  });
+  editBtn.textContent = reviewEditing ? 'Done' : 'Edit';
+  if (reviewEditing && editableEls[0]) editableEls[0].focus();
 });
 
 // ─────────────────────────────────────────────────────────────────────────────

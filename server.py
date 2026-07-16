@@ -2,8 +2,11 @@
 server.py  —  Pulse AI FastAPI backend
 =======================================
 Endpoints:
-  GET  /          → serves static/index.html
-  GET  /api/calls → dummy call list (JSON)
+  GET  /                → serves static/index.html
+  GET  /api/calls        → live call list from Veeva CRM (JSON)
+  POST /api/submit-call  → runs compliance-gate on submitted fields; if
+                           PROCEED, writes them to Veeva; if HOLD, returns
+                           the violations for the review screen to display
   WS   /ws/transcribe → receives raw PCM chunks, encodes on-the-fly,
                         returns {"transcript": "..."} when client sends "stop"
 
@@ -27,12 +30,11 @@ import logging
 import struct
 import traceback
 from pathlib import Path
-from typing import Any
 
 import concurrent.futures
 
 logging.basicConfig(
-    level=logging.DEBUG,
+    level=logging.INFO,
     format="%(asctime)s [%(levelname)s] %(message)s",
     datefmt="%H:%M:%S",
 )
@@ -48,9 +50,8 @@ from transformers.models.moonshine_streaming.modeling_moonshine_streaming import
     MoonshineStreamingEncoderModelOutput,
 )
 
-from complianceLayer import ComplianceLayer
-from fieldExtraction import FieldExtraction
-from summaryField import SummaryField
+from cortexAgents import correct_transcript, extract_call_fields, check_compliance
+from veeva_client import fetch_calls_for_rep, update_call_in_veeva
 
 from transcribe_streaming_experiment import (
     SAMPLE_RATE,
@@ -89,46 +90,7 @@ print("Model ready.")
 _executor = concurrent.futures.ThreadPoolExecutor(max_workers=1)
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Dummy call data (replace with CRM API call later)
-# ─────────────────────────────────────────────────────────────────────────────
-
-DUMMY_CALLS: list[dict[str, Any]] = [
-    {
-        "id": "call-001",
-        "hcp_name": "Dr. Sarah Patel",
-        "specialty": "Endocrinology",
-        "product": "Mounjaro",
-        "location": "North Houston Medical",
-        "status": "pending",
-    },
-    {
-        "id": "call-002",
-        "hcp_name": "Dr. James Kim",
-        "specialty": "Cardiology",
-        "product": "Jardiance",
-        "location": "Memorial Hermann",
-        "status": "done",
-    },
-    {
-        "id": "call-003",
-        "hcp_name": "Dr. Maria Rodriguez",
-        "specialty": "Internal Medicine",
-        "product": "Verzenio",
-        "location": "UTHealth Houston",
-        "status": "pending",
-    },
-    {
-        "id": "call-004",
-        "hcp_name": "Dr. Chen Wei",
-        "specialty": "Oncology",
-        "product": "Verzenio",
-        "location": "MD Anderson",
-        "status": "pending",
-    },
-]
-
-# ─────────────────────────────────────────────────────────────────────────────
-# App
+# App — call list is sourced live from Veeva CRM, see veeva_client.py
 # ─────────────────────────────────────────────────────────────────────────────
 
 app = FastAPI(title="Pulse AI")
@@ -142,7 +104,85 @@ async def root():
 
 @app.get("/api/calls")
 async def get_calls():
-    return JSONResponse(content=DUMMY_CALLS)
+    try:
+        calls = await fetch_calls_for_rep()
+    except Exception as exc:
+        logging.error(f"Failed to fetch calls from Veeva:\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": f"Veeva fetch failed: {exc}"})
+    return JSONResponse(content=calls)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Submit-call: compliance gate → Veeva write
+# ─────────────────────────────────────────────────────────────────────────────
+# Only the confirmed-writable Call2_vod__c fields established this session
+# get sent to Veeva. products/next_steps/competitor_mentions/confidence stay
+# UI-only — no Veeva field exists for the first three, and confidence is our
+# own extraction metadata, not call content.
+
+def _extraction_to_veeva_fields(extraction: dict) -> dict:
+    """Map the extraction/edited-fields shape onto writable Call2_vod__c fields."""
+    meta = extraction.get("call_metadata") or {}
+    fields: dict = {}
+
+    if meta.get("location"):
+        fields["Territory_vod__c"] = meta["location"]
+
+    call_datetime = meta.get("call_datetime")
+    if call_datetime:
+        # extract_call_fields() can return either a full ISO datetime
+        # ("2026-07-15T10:00:00") or a date-only ISO string ("2026-07-15") —
+        # see the CALL_DATETIME RESOLUTION rules added to the field-extractor
+        # prompt. Branch on which we got.
+        has_time = "T" in call_datetime
+        fields["Call_Date_vod__c"] = call_datetime[:10]
+        if has_time:
+            # NOTE (unverified): Salesforce datetime fields typically expect
+            # a timezone-qualified ISO string. Our extraction produces a
+            # naive local ISO value with no offset — appending "Z" is a
+            # best-effort guess, not a confirmed-correct format. Watch the
+            # first live submit for a 400 specifically on this field.
+            dt = call_datetime if call_datetime.endswith("Z") or "+" in call_datetime[10:] else call_datetime + "Z"
+            fields["Call_Datetime_vod__c"] = dt
+
+    if meta.get("engagement_method"):
+        fields["Call_Channel_vod__c"] = meta["engagement_method"]
+    if meta.get("virtual_engagement_tool"):
+        fields["Remote_Meeting_Type_vod__c"] = meta["virtual_engagement_tool"]
+
+    if extraction.get("summary"):
+        fields["Chat_Summary_vod__c"] = extraction["summary"]
+
+    # Mark the call finalized — matches veeva_client.py's _STATUS_MAP
+    # (Submitted_vod -> "done"), so the next /api/calls read reflects this
+    # submission as real persisted state, not just local UI state.
+    fields["Status_vod__c"] = "Submitted_vod"
+
+    return fields
+
+
+@app.post("/api/submit-call")
+async def submit_call(payload: dict):
+    call_id    = payload.get("call_id")
+    extraction = payload.get("extraction") or {}
+
+    if not call_id:
+        return JSONResponse(status_code=400, content={"status": "error", "error": "call_id is required"})
+
+    compliance = check_compliance(extraction)
+    logging.info(f"[submit] call_id={call_id} compliance={compliance!r}")
+
+    if compliance.get("recommended_action") != "PROCEED":
+        return JSONResponse(content={"status": "held", "compliance": compliance})
+
+    veeva_fields = _extraction_to_veeva_fields(extraction)
+    try:
+        await update_call_in_veeva(call_id, veeva_fields)
+    except Exception as exc:
+        logging.error(f"Veeva write failed for {call_id}:\n{traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"status": "error", "error": str(exc)})
+
+    return JSONResponse(content={"status": "submitted", "compliance": compliance})
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -180,40 +220,46 @@ def _sync_decode(accumulated_hidden, accumulated_masks):
         ids = _model.generate(
             encoder_outputs=reconstructed,
             max_new_tokens=MAX_TOKENS,
+            # Repetition guards — without these, greedy decoding on long/
+            # noisy audio can lock onto a phrase and repeat it verbatim
+            # until max_new_tokens is hit (observed live: a ~50s recording
+            # decoded to "I'm here with Dr. David P. P. P. P...." repeated
+            # hundreds of times). no_repeat_ngram_size hard-bans repeating
+            # the same 3-word sequence; repetition_penalty discourages
+            # repeating any token more softly, catching single-word loops
+            # that a 3-gram ban alone wouldn't stop (e.g. "P. P. P.").
+            no_repeat_ngram_size=3,
+            repetition_penalty=1.3,
         )
     return _processor.batch_decode(ids, skip_special_tokens=True)[0].strip()
 
 
 def _sync_pipeline(transcript: str) -> dict:
     """
-    Runs the full post-transcription Cortex pipeline synchronously.
-    Called via run_in_executor so it does not block the event loop.
+    Runs the post-transcription Cortex pipeline synchronously: STT keyword
+    correction, then structured field extraction. Called via run_in_executor
+    so it does not block the event loop.
 
-    Returns a dict with type "pipeline_complete" or "pipeline_halted".
+    NOTE: compliance (PI/AECP redaction) is not part of this stage anymore —
+    it now runs as a submit-time gate right before the Veeva write, after the
+    rep has reviewed/filled in fields. See the approve-btn handler in
+    static/index.html for that seam. Always returns type "pipeline_complete";
+    the old "pipeline_halted" message no longer exists.
     """
-    compliance = ComplianceLayer().analyze(transcript)
+    correction = correct_transcript(transcript)
+    corrected  = correction.get("corrected_transcript") or transcript
+    logging.info(f"[pipeline] raw transcript ({len(transcript)} chars): {transcript!r}")
+    logging.info(f"[pipeline] correction result: {correction!r}")
+    logging.info(f"[pipeline] corrected transcript used for extraction: {corrected!r}")
 
-    # If compliance halted the session, stop here — do not run extraction/summary
-    if compliance["recommended_action"] == "HALT":
-        logging.warning("Compliance HALT — skipping field extraction and summary")
-        return {
-            "type":       "pipeline_halted",
-            "compliance": compliance,
-        }
-
-    # Use cleaned_transcript if Compliance Goblin returned one; fall back to
-    # the raw transcript so field extraction always has something to work with
-    cleaned = compliance.get("cleaned_transcript") or transcript
-
-    extraction = FieldExtraction().extract(cleaned)
-    summary    = SummaryField().summarize(cleaned)
+    extraction = extract_call_fields(corrected)
+    logging.info(f"[pipeline] extraction result: {extraction!r}")
 
     return {
         "type":       "pipeline_complete",
         "transcript": transcript,
-        "compliance": compliance,
+        "correction": correction,
         "extraction": extraction,
-        "summary":    summary,
     }
 
 
@@ -287,9 +333,9 @@ async def ws_transcribe(websocket: WebSocket):
                         _sync_decode,
                         accumulated_hidden, accumulated_masks,
                     )
-                    logging.info(f"Decode complete: {len(transcript)} chars")
+                    logging.info(f"Decode complete: {len(transcript)} chars — content: {transcript!r}")
 
-                    # Run compliance → extraction → summary on the thread pool
+                    # Run keyword-correction → field-extraction on the thread pool
                     await websocket.send_json({"type": "pipeline_running"})
                     result = await loop.run_in_executor(
                         _executor,

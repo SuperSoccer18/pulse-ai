@@ -26,7 +26,10 @@ from datetime import datetime, timezone
 
 # get_bearer_token obtains the Azure AD OAuth2 Bearer token for Cortex
 # Reuses the same cached token as complianceLayer.py if still valid
-from cortexAuthenticator import get_bearer_token
+# TODO: cortexAuthenticator.py was removed from the repo — restore it to
+# re-enable summary calls. Commented out for now; the try/except around
+# get_bearer_token() below already degrades to a None return on failure.
+# from cortexAuthenticator import get_bearer_token
 
 # ─────────────────────────────────────────────────────────────────────────────
 # Logging

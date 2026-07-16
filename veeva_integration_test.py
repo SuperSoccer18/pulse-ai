@@ -153,26 +153,22 @@ async def fetch_calls(token: str, instance_url: str) -> list[dict]:
 async def main():
     token, instance_url = await get_veeva_token()
 
-    # --- Patch account, date, location onto all 6 calls ---
+    # --- Full field list for Call2_Detail_vod__c ---
     print("\n" + "="*60)
-    print("  Patching all calls with account + location")
+    print("  Call2_Detail_vod__c  —  ALL fields (create/update permission shown)")
     print("="*60)
-    for account_id, hcp_name, *_, call_date, location in DUMMY_CALLS:
-        call_id = EXISTING_CALL_IDS[account_id]
-        await update_call(token, instance_url, call_id, {
-            "Account_vod__c":   account_id,
-            "Call_Date_vod__c": call_date,
-            "Territory_vod__c": location,
-        })
-        print(f"  ✓  {hcp_name:<20}  → {location}")
-
-    # --- Read them back as application dicts ---
-    print("\n" + "="*60)
-    print("  Arthur's calls (application dict shape)")
-    print("="*60)
-    calls = await fetch_calls(token, instance_url)
-    for c in calls:
-        print(c)
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        resp = await client.get(
+            f"{instance_url}/services/data/v60.0/sobjects/Call2_Detail_vod__c/describe",
+            headers={"Authorization": f"Bearer {token}"},
+        )
+        resp.raise_for_status()
+        fields = resp.json()["fields"]
+    print(f"{'Field API Name':<45} {'Label':<40} {'Type':<12} {'Create':<8} {'Update':<8} Picklist values")
+    print(f"{'-'*45} {'-'*40} {'-'*12} {'-'*8} {'-'*8} ---------------")
+    for f in fields:
+        picklist = ", ".join(v["value"] for v in f["picklistValues"] if v["active"]) if f["picklistValues"] else ""
+        print(f"{f['name']:<45} {f['label']:<40} {f['type']:<12} {str(f['createable']):<8} {str(f['updateable']):<8} {picklist}")
 
 if __name__ == "__main__":
     asyncio.run(main())
