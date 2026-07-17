@@ -81,6 +81,19 @@ async def fetch_calls_for_rep() -> list[dict]:
     Fetch Arthur Stephenson's active calls from Veeva and map them to the
     shape static/index.html expects: id, hcp_name, specialty, location,
     product, status.
+
+    Once submitted, Veeva locks a call record (Status_vod__c can never move
+    off Submitted_vod again — confirmed live via a 400
+    FIELD_CUSTOM_VALIDATION_EXCEPTION when attempting to reset one for
+    re-testing). Re-recording for the same HCP means creating a brand new
+    Call2_vod__c row rather than reusing the old one, which can leave an HCP
+    with both a Submitted_vod (done) row and a fresh Planned_vod (pending)
+    row at once. We keep querying Submitted_vod calls too (not just
+    excluding them) so the "Documented" stat and done-card styling stay
+    accurate on a fresh page load, not just right after a submit in the
+    same browser session — but only surface ONE row per HCP: prefer an
+    actionable pending call over a done one, since a done call has nothing
+    left for the rep to do.
     """
     token, instance_url = await get_veeva_token()
 
@@ -95,19 +108,26 @@ async def fetch_calls_for_rep() -> list[dict]:
     """
     result = await query_veeva(token, instance_url, soql)
 
-    calls = []
+    by_account: dict[str, dict] = {}
     for r in result.get("records", []):
         acct = r.get("Account_vod__r") or {}
         account_id = r.get("Account_vod__c")
-        calls.append({
+        call = {
             "id": r["Id"],
             "hcp_name": acct.get("Name"),
             "specialty": acct.get("Specialty_1_vod__c"),
             "location": r.get("Territory_vod__c"),
             "product": _PRODUCT_PLACEHOLDER.get(account_id, "—"),
             "status": _STATUS_MAP.get(r.get("Status_vod__c"), "pending"),
-        })
-    return calls
+        }
+        existing = by_account.get(account_id)
+        # Prefer a pending call over a done one for the same HCP — that's
+        # the one the rep can actually act on. If both are the same status
+        # (e.g. two pending, shouldn't normally happen), keep the first seen.
+        if existing is None or (existing["status"] == "done" and call["status"] == "pending"):
+            by_account[account_id] = call
+
+    return list(by_account.values())
 
 
 async def update_call_in_veeva(call_id: str, fields: dict) -> None:

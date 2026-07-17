@@ -2,11 +2,14 @@
 server.py  —  Pulse AI FastAPI backend
 =======================================
 Endpoints:
-  GET  /                → serves static/index.html
-  GET  /api/calls        → live call list from Veeva CRM (JSON)
-  POST /api/submit-call  → runs compliance-gate on submitted fields; if
-                           PROCEED, writes them to Veeva; if HOLD, returns
-                           the violations for the review screen to display
+  GET  /                     → serves static/index.html
+  GET  /api/calls             → live call list from Veeva CRM (JSON)
+  POST /api/check-compliance  → runs compliance-gate only, no Veeva write —
+                                used to show a checking/passed/held state
+                                before the rep commits to submitting
+  POST /api/submit-call       → runs compliance-gate on submitted fields; if
+                                PROCEED, writes them to Veeva; if HOLD, returns
+                                the violations for the review screen to display
   WS   /ws/transcribe → receives raw PCM chunks, encodes on-the-fly,
                         returns {"transcript": "..."} when client sends "stop"
 
@@ -161,6 +164,23 @@ def _extraction_to_veeva_fields(extraction: dict) -> dict:
     return fields
 
 
+@app.post("/api/check-compliance")
+async def check_compliance_endpoint(payload: dict):
+    """
+    Compliance-only check — no Veeva write. Split out from /api/submit-call
+    so the review screen can show a distinct "checking" step (spinner
+    popup) before the rep commits to the actual write. On a clean result,
+    the client calls /api/submit-call directly with a follow-up click
+    rather than this endpoint re-checking or writing anything itself.
+    """
+    extraction = payload.get("extraction") or {}
+    compliance = check_compliance(extraction)
+    logging.info(f"[check-compliance] compliance={compliance!r}")
+
+    status = "clean" if compliance.get("recommended_action") == "PROCEED" else "held"
+    return JSONResponse(content={"status": status, "compliance": compliance})
+
+
 @app.post("/api/submit-call")
 async def submit_call(payload: dict):
     call_id    = payload.get("call_id")
@@ -208,10 +228,84 @@ def _sync_encode(chunk, overlap_buffer, is_first):
     return encode_chunk(chunk, overlap_buffer, is_first, _processor, _model)
 
 
+# ─────────────────────────────────────────────────────────────────────────────
+# Windowed decoding — tried and reverted (2026-07-17)
+# ─────────────────────────────────────────────────────────────────────────────
+# We attempted decoding the accumulated encoder states in fixed ~15s windows
+# instead of one pass over the whole recording, to bound how long any single
+# generate() call's target sequence could grow (autoregressive decode
+# quality degrades on long sequences — observed as both a repetition loop
+# and a hallucinated product extraction on ~50s recordings).
+#
+# Root cause found by reading modeling_moonshine_streaming.py: in
+# MoonshineStreamingDecoder.forward(), the encoder-side positional embedding
+# is computed from the LOCAL shape of whatever tensor is passed as
+# encoder_hidden_states (torch.arange(encoder_hidden_states.shape[1])), not
+# from that audio's true absolute position, and there is no exposed
+# parameter to override this. Slicing accumulated_hidden into windows means
+# every window after the first gets mislabeled as "starts at position 0"
+# even though its real content is mid-recording. Confirmed numerically:
+# pos_emb(0) vs pos_emb(750) differ by ~1.13 mean absolute magnitude, added
+# directly into the decoder's cross-attention input.
+#
+# This fully explained the observed pattern (window 1 always clean, every
+# window after it corrupted regardless of content, size, or generation
+# settings — including an A/B test that ruled out repetition_penalty as the
+# cause). What's NOT fully settled is why the mislabeling degrades output
+# to this degree rather than just mildly — plausibly a distribution-shift
+# effect on top of the positional bug: real mid-utterance audio content
+# wearing a "this is the start of a recording" positional tag may be
+# doubly out-of-distribution if the model was only ever trained on segments
+# that are genuinely the start of an utterance. That would mean a truly
+# independent per-window re-encode (correct local positions, but still
+# mid-utterance acoustic content) might not fully fix this either — untested.
+#
+# Bookmarked as a possible future direction: true chunked transcription
+# using VAD (voice activity detection) to find natural pause/silence
+# boundaries for chunk splits, rather than fixed-duration windows — this
+# would need each chunk to be independently re-encoded (not sliced from
+# shared hidden states) and would still need to confirm whether the
+# distribution-shift concern above applies to VAD-aligned chunks the same
+# way it did to arbitrary-duration ones.
+#
+# For now: reverted to a single decode pass over the whole recording,
+# keeping the two mitigations below as damage control for long-recording
+# degradation.
+# ─────────────────────────────────────────────────────────────────────────────
+
+REPETITION_PENALTY = 1.3   # confirmed via A/B test not to be the cause of
+                            # window-splitting corruption, but still useful
+                            # against genuine same-phrase repetition loops.
+
+# Frames-per-second for this model's encoder (SAMPLES_PER_FRAME/SAMPLE_RATE
+# in transcribe_streaming_experiment.py: 320/16000 = 20ms/frame = 50/sec).
+FRAMES_PER_SECOND = 50
+
+# Damage control for runaway generation on long recordings: even with
+# repetition guards, a long decode can degenerate into lexically-varied
+# filler that dodges a 3-gram repeat ban ("I've. I need. I do. I and I
+# am..."). MAX_TOKENS=448 as a flat ceiling lets a bad decode generate far
+# more filler than any real recording of typical length would ever need
+# (real speech: roughly 3-4 tokens/sec). Capping max_new_tokens
+# proportional to the actual recording duration bounds the blast radius of
+# a bad decode without affecting normal transcription — MIN_TOTAL_TOKENS
+# keeps short recordings from being capped down to nothing.
+TOKENS_PER_SECOND_CAP = 12   # generous — real speech is ~3-4 tokens/sec;
+                              # this is a ceiling on garbage, not a target for speech
+MIN_TOTAL_TOKENS = 32
+
+
+def _max_tokens_for_recording(n_frames: int) -> int:
+    """max_new_tokens proportional to recording duration, capped by the
+    global MAX_TOKENS ceiling — see TOKENS_PER_SECOND_CAP above."""
+    duration_seconds = n_frames / FRAMES_PER_SECOND
+    return max(MIN_TOTAL_TOKENS, min(MAX_TOKENS, round(duration_seconds * TOKENS_PER_SECOND_CAP)))
+
+
 def _sync_decode(accumulated_hidden, accumulated_masks):
     """Blocking decode call — runs in the thread pool."""
-    enc_hidden = torch.cat(accumulated_hidden, dim=1)
-    enc_mask   = torch.cat(accumulated_masks,  dim=1)
+    enc_hidden = torch.cat(accumulated_hidden, dim=1)   # [1, T_total, 768]
+    enc_mask   = torch.cat(accumulated_masks,  dim=1)   # [1, T_total]
     reconstructed = MoonshineStreamingEncoderModelOutput(
         last_hidden_state=enc_hidden,
         attention_mask=enc_mask,
@@ -219,20 +313,11 @@ def _sync_decode(accumulated_hidden, accumulated_masks):
     with torch.no_grad():
         ids = _model.generate(
             encoder_outputs=reconstructed,
-            max_new_tokens=MAX_TOKENS,
-            # Repetition guards — without these, greedy decoding on long/
-            # noisy audio can lock onto a phrase and repeat it verbatim
-            # until max_new_tokens is hit (observed live: a ~50s recording
-            # decoded to "I'm here with Dr. David P. P. P. P...." repeated
-            # hundreds of times). no_repeat_ngram_size hard-bans repeating
-            # the same 3-word sequence; repetition_penalty discourages
-            # repeating any token more softly, catching single-word loops
-            # that a 3-gram ban alone wouldn't stop (e.g. "P. P. P.").
+            max_new_tokens=_max_tokens_for_recording(enc_hidden.shape[1]),
             no_repeat_ngram_size=3,
-            repetition_penalty=1.3,
+            repetition_penalty=REPETITION_PENALTY,
         )
     return _processor.batch_decode(ids, skip_special_tokens=True)[0].strip()
-
 
 def _sync_pipeline(transcript: str) -> dict:
     """
